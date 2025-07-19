@@ -20,14 +20,18 @@ export async function handleMessage(userId: number, message: string): Promise<st
     // Add user message to history
     history.push({ role: 'user', content: message });
     
+    const preprompt = "Act as a gymbro buddy. Only answer gym related prompts, if you are asked about something else, say 'I am a gymbro, I only talk about gym stuff'. ";
+    const postprompt = " Keep you answer short, never exceed 512 characters. Use emojis to make it more fun. If you don't know the answer, say 'Bro I don't know, I am just a gymbro'.";
+
     try {
         // Get response from Mistral
         const response = await client.chat.complete({
             messages: history.map(msg => ({
                 role: msg.role,
-                content: msg.content
+                content: preprompt + msg.content + postprompt
             })),
-            model: "mistral-small-latest"
+            model: "mistral-small-latest",
+            safePrompt: true
         });
 
         const botResponse = response.choices[0]?.message?.content?.toString() || 'Sorry, I could not generate a response.';
