@@ -1,8 +1,9 @@
 import { Telegraf } from 'telegraf';
-import { token } from './config';
+import { telegramBotToken } from './config';
+import { handleMessage } from './mistral';
 
 // Create bot instance
-const bot = new Telegraf(token);
+const bot = new Telegraf(telegramBotToken);
 
 // Command handler for /start
 bot.command('start', async (ctx) => {
@@ -12,12 +13,28 @@ bot.command('start', async (ctx) => {
 // Handle text messages
 bot.on('text', async (ctx) => {
     const message = ctx.message.text.toLowerCase();
-    
+    const userId = ctx.message.from.id;
+    console.log('%s: message received: %s', userId, message);
+
+    // Special keywords for direct responses
     if (message.includes('lightweight')) {
         await ctx.reply('LIGHTWEIGHT BABY! 💪');
-    } else if (message.includes('yeah buddy')) {
+        return;
+    }
+
+    if (message.includes('yeah buddy')) {
         await ctx.reply('YEAAAH BUDDY! 🏋️‍♂️');
-    } else {
+        return;
+    }
+
+    // For all other messages, use Mistral AI
+    try {
+        console.log('lets try ai');
+        await ctx.sendChatAction('typing');
+        const response = await handleMessage(userId, ctx.message.text);
+        await ctx.reply(response);
+    } catch (error) {
+        console.log('Error handling message:', error);
         await ctx.reply('Ain\'t nothing but a peanut! 🥜');
     }
 });
@@ -29,13 +46,13 @@ bot.catch((err, ctx) => {
 
 // Start the bot
 try {
-    console.log('Starting the bot...');
+    console.log('Starting the bot... 2');
     await bot.launch();
-    
+
     // Enable graceful stop
     process.once('SIGINT', () => bot.stop('SIGINT'));
     process.once('SIGTERM', () => bot.stop('SIGTERM'));
-    
+
     console.log('Bot is running!');
 } catch (error) {
     console.error('Error starting the bot:', error);
