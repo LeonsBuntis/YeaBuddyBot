@@ -19,7 +19,9 @@
   },
   "dependencies": {
     "@mistralai/mistralai": "^1.7.4",
+    "@types/express": "^5.0.3",
     "dotenv": "^17.2.0",
+    "express": "^5.1.0",
     "telegraf": "^4.16.3"
   }
 }
