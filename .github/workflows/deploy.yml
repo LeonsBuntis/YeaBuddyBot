@@ -15,6 +15,7 @@ jobs:
       AZURE_FUNCTIONAPP_NAME: ${{ secrets.AZURE_FUNCTIONAPP_NAME }}
       AZURE_STORAGE_ACCOUNT: ${{ secrets.AZURE_STORAGE_ACCOUNT }}
       AZURE_LOCATION: westeurope
+      AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -40,6 +41,7 @@ jobs:
         with:
           inlineScript: |
             az deployment group create \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
               --location ${{ env.AZURE_LOCATION }} \
               --template-file infrastructure/main.bicep \
               --parameters functionAppName=${{ env.AZURE_FUNCTIONAPP_NAME }} storageAccountName=${{ env.AZURE_STORAGE_ACCOUNT }}
