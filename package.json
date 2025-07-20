@@ -6,9 +6,7 @@
   "scripts": {
     "build": "tsc",
     "start": "tsx src/index.ts",
-    "dev": "tsx watch src/index.ts",
-    "func:start": "npm run build && func start",
-    "func:build": "tsc && cp host.json dist/ && cp local.settings.json dist/"
+    "dev": "tsx watch src/index.ts"
   },
   "keywords": [],
   "author": "",

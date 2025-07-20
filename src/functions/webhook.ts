@@ -1,4 +1,4 @@
-import { app, HttpRequest, InvocationContext } from '@azure/functions';
+import { HttpRequest, InvocationContext } from '@azure/functions';
 import type { HttpResponseInit } from '@azure/functions';
 import { YeaBuddyBot } from '../bot/YeaBuddyBot';
 import { telegramBotToken } from '../config';
@@ -52,33 +52,3 @@ export async function telegramWebhook(request: HttpRequest, context: InvocationC
         };
     }
 }
-
-// Register the function
-app.http('telegramWebhook', {
-    methods: ['POST'],
-    authLevel: 'anonymous',
-    route: 'webhook',
-    handler: telegramWebhook
-});
-
-// Health check endpoint
-export async function healthCheck(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-    return {
-        status: 200,
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            status: 'healthy',
-            timestamp: new Date().toISOString(),
-            service: 'YeaBuddy Bot'
-        })
-    };
-}
-
-app.http('healthCheck', {
-    methods: ['GET'],
-    authLevel: 'anonymous',
-    route: 'health',
-    handler: healthCheck
-});
