@@ -39,7 +39,7 @@ jobs:
         uses: azure/cli@v2
         with:
           inlineScript: |
-            az deployment sub create \
+            az deployment group create \
               --location ${{ env.AZURE_LOCATION }} \
               --template-file infrastructure/main.bicep \
               --parameters functionAppName=${{ env.AZURE_FUNCTIONAPP_NAME }} storageAccountName=${{ env.AZURE_STORAGE_ACCOUNT }}
