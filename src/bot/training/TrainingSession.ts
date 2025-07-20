@@ -1,3 +1,6 @@
+import { WorkoutHistoryManager } from './WorkoutHistory';
+import type { CompletedSession } from './WorkoutHistory';
+
 export interface Exercise {
     name: string;
     sets: Array<{
@@ -14,9 +17,11 @@ export interface TrainingSession {
 
 export class TrainingManager {
     private activeSessions: Map<number, TrainingSession>;
+    private historyManager: WorkoutHistoryManager;
 
     constructor() {
         this.activeSessions = new Map();
+        this.historyManager = new WorkoutHistoryManager();
     }
 
     public startSession(userId: number): boolean {
@@ -63,10 +68,18 @@ export class TrainingManager {
         return currentExercise;
     }
 
-    public finishSession(userId: number): TrainingSession | null {
+    public async finishSession(userId: number): Promise<TrainingSession | null> {
         const session = this.activeSessions.get(userId);
         if (!session) {
             return null;
+        }
+
+        // Save session to history before removing from active sessions
+        try {
+            await this.historyManager.saveCompletedSession(session);
+        } catch (error) {
+            console.error('Failed to save session to history:', error);
+            // Continue with finishing the session even if history save fails
         }
 
         this.activeSessions.delete(userId);
@@ -86,7 +99,7 @@ export class TrainingManager {
         session.exercises.forEach(exercise => {
             summary += `\n${exercise.name}:\n`;
             exercise.sets.forEach((set, index) => {
-                summary += `Set ${index + 1}: ${set.weight}kg x ${set.reps} reps\n`;
+                summary += `Set ${index + 1}: ${set.weight}lbs x ${set.reps} reps\n`;
             });
         });
 
@@ -103,5 +116,34 @@ export class TrainingManager {
         });
 
         return response;
+    }
+
+    public async getUserWorkoutHistory(userId: number): Promise<string> {
+        try {
+            const history = await this.historyManager.getUserHistory(userId);
+            return this.historyManager.formatWorkoutHistory(history);
+        } catch (error) {
+            console.error('Error getting workout history:', error);
+            return "Sorry bro! 😅 Couldn't load your workout history right now. Try again later!";
+        }
+    }
+
+    public async getSessionDetails(userId: number, sessionIndex: number): Promise<string> {
+        try {
+            const history = await this.historyManager.getUserHistory(userId);
+            if (sessionIndex < 0 || sessionIndex >= history.sessions.length) {
+                return "Session not found! 🤔 Use /history to see your available sessions.";
+            }
+            
+            const session = history.sessions[sessionIndex];
+            if (!session) {
+                return "Session not found! 🤔 Use /history to see your available sessions.";
+            }
+            
+            return this.historyManager.formatSessionDetails(session);
+        } catch (error) {
+            console.error('Error getting session details:', error);
+            return "Sorry bro! 😅 Couldn't load the session details right now. Try again later!";
+        }
     }
 }

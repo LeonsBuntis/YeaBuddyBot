@@ -29,7 +29,8 @@ export class YeaBuddyBot {
 
     private async setupCommands(): Promise<void> {
         await this.bot.telegram.setMyCommands([
-            { command: 'pumpit', description: 'Start a new training session 🏋️‍♂️' }
+            { command: 'pumpit', description: 'Start a new training session 🏋️‍♂️' },
+            { command: 'history', description: 'View your workout history 📊' }
         ]);
     }
 
@@ -61,6 +62,21 @@ export class YeaBuddyBot {
                 'Let\'s make these weights fly! YEAH BUDDY! 💪',
                 keyboard
             );
+        });
+
+        // Command handler for /history - view workout history
+        this.bot.command('history', async (ctx) => {
+            const userId = ctx.from?.id;
+            if (!userId) return;
+
+            try {
+                await ctx.sendChatAction('typing');
+                const historyMessage = await this.trainingManager.getUserWorkoutHistory(userId);
+                await ctx.reply(historyMessage);
+            } catch (error) {
+                console.error('Error handling history command:', error);
+                await ctx.reply('Sorry bro! 😅 Something went wrong getting your history. Try again later!');
+            }
         });
 
         // Handle inline button actions
@@ -122,7 +138,7 @@ export class YeaBuddyBot {
     }
 
     private async handleFinishCommand(ctx: Context, userId: number): Promise<void> {
-        const session = this.trainingManager.finishSession(userId);
+        const session = await this.trainingManager.finishSession(userId);
         if (!session) {
             await ctx.reply('No active training session! Start one with /pumpit first! 💪');
             return;
@@ -133,7 +149,7 @@ export class YeaBuddyBot {
         ]).oneTime().resize();
         
         const summary = this.trainingManager.formatSessionSummary(session);
-        await ctx.reply(summary, keyboard);
+        await ctx.reply(summary + '\n\n✅ Workout saved to your history!\nUse /history to see all your workouts! 📊', keyboard);
     }
 
     private handleError(err: unknown, ctx: Context): void {
