@@ -140,6 +140,29 @@ export class YeaBuddyBot {
         console.error(`Error for ${ctx.updateType}:`, err);
     }
 
+    public async handleWebhook(update: any): Promise<void> {
+        try {
+            await this.bot.handleUpdate(update);
+        } catch (error) {
+            console.error('Error handling webhook update:', error);
+            throw error;
+        }
+    }
+
+    public async initializeWebhook(): Promise<void> {
+        try {
+            // Set up command suggestions
+            await this.setupCommands().catch(error => {
+                console.warn('Failed to set up command suggestions:', error);
+            });
+            
+            console.log('Bot webhook handler initialized!');
+        } catch (error) {
+            console.error('Error initializing webhook:', error);
+            throw error;
+        }
+    }
+
     public async run(): Promise<void> {
         try {
             console.log('Starting the bot...');

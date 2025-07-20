@@ -8,7 +8,6 @@
     "resolveJsonModule": true,
     "moduleDetection": "force",
     "isolatedModules": true,
-    "verbatimModuleSyntax": true,
 
     /* Strictness */
     "strict": true,
@@ -16,25 +15,17 @@
     "noImplicitOverride": true,
 
     /* If transpiling with TypeScript: */
-    "module": "NodeNext",
+    "module": "CommonJS",
     "outDir": "dist",
     "sourceMap": true,
+    "moduleResolution": "node",
 
-    /* AND if you're building for a library: */
-    "declaration": true,
-
-    /* AND if you're building for a library in a monorepo: */
-    "composite": true,
-    "declarationMap": true,
-
-    /* If NOT transpiling with TypeScript: */
-    "module": "preserve",
-    "noEmit": true,
-
-    /* If your code runs in the DOM: */
-    "lib": ["es2022", "dom", "dom.iterable"],
+    /* Azure Functions specific */
+    "allowSyntheticDefaultImports": true,
 
     /* If your code doesn't run in the DOM: */
     "lib": ["es2022"]
-  }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }
