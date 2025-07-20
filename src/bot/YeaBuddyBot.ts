@@ -72,7 +72,14 @@ export class YeaBuddyBot {
             try {
                 await ctx.sendChatAction('typing');
                 const historyMessage = await this.trainingManager.getUserWorkoutHistory(userId);
-                await ctx.reply(historyMessage);
+                
+                // Only show the button if user has workout history
+                const hasHistory = !historyMessage.includes('No workout history found');
+                const keyboard = hasHistory ? Markup.inlineKeyboard([
+                    [Markup.button.callback('View Session Details 🔍', 'viewSession')]
+                ]) : undefined;
+                
+                await ctx.reply(historyMessage, keyboard);
             } catch (error) {
                 console.error('Error handling history command:', error);
                 await ctx.reply('Sorry bro! 😅 Something went wrong getting your history. Try again later!');
@@ -102,6 +109,34 @@ export class YeaBuddyBot {
 
             await ctx.answerCbQuery();
             await ctx.scene.enter('addSet');
+        });
+
+        this.bot.action('viewSession', async (ctx) => {
+            const userId = ctx.from?.id;
+            if (!userId) return;
+
+            await ctx.answerCbQuery();
+            await ctx.scene.enter('viewSession');
+        });
+
+        this.bot.action('backToHistory', async (ctx) => {
+            const userId = ctx.from?.id;
+            if (!userId) return;
+
+            await ctx.answerCbQuery();
+            try {
+                await ctx.sendChatAction('typing');
+                const historyMessage = await this.trainingManager.getUserWorkoutHistory(userId);
+                
+                const keyboard = Markup.inlineKeyboard([
+                    [Markup.button.callback('View Session Details 🔍', 'viewSession')]
+                ]);
+                
+                await ctx.reply(historyMessage, keyboard);
+            } catch (error) {
+                console.error('Error handling backToHistory action:', error);
+                await ctx.reply('Sorry bro! 😅 Something went wrong getting your history. Try again later!');
+            }
         });
 
         // Handle text messages

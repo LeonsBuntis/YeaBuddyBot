@@ -71,5 +71,38 @@ export function createWorkoutScenes(trainingManager: TrainingManager) {
         await ctx.scene.leave();
     });
 
-    return new Scenes.Stage([addExerciseScene, addSetScene]);
+    // Scene for viewing workout session details
+    const viewSessionScene = new Scenes.BaseScene<Scenes.SceneContext>('viewSession');
+    viewSessionScene.enter(async (ctx) => {
+        await ctx.reply('Enter the session number from your history (e.g., "1" for the first session):');
+    });
+
+    viewSessionScene.on('text', async (ctx) => {
+        const userId = ctx.from?.id;
+        if (!userId || !('text' in ctx.message)) return;
+
+        const sessionNumber = parseInt(ctx.message.text);
+        if (isNaN(sessionNumber) || sessionNumber < 1) {
+            await ctx.reply('Please enter a valid session number (e.g., "1", "2", "3")');
+            return;
+        }
+
+        try {
+            await ctx.sendChatAction('typing');
+            const sessionDetails = await trainingManager.getSessionDetails(userId, sessionNumber - 1);
+            
+            const keyboard = Markup.inlineKeyboard([
+                [Markup.button.callback('View Another Session 🔍', 'viewSession')],
+                [Markup.button.callback('Back to History 📊', 'backToHistory')]
+            ]);
+            
+            await ctx.reply(sessionDetails, keyboard);
+        } catch (error) {
+            await ctx.reply('Sorry bro! 😅 Couldn\'t load that session. Try again!');
+        }
+        
+        await ctx.scene.leave();
+    });
+
+    return new Scenes.Stage([addExerciseScene, addSetScene, viewSessionScene]);
 }
