@@ -37,6 +37,10 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
           name: 'FUNCTIONS_WORKER_RUNTIME'
           value: 'node'
         }
+        {
+          name: 'WEBSITE_NODE_DEFAULT_VERSION'
+          value: '~22'
+        }
       ]
     }
     httpsOnly: true
