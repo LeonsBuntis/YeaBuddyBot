@@ -147,12 +147,6 @@ export class YeaBuddyBot {
             // Launch the bot
             await this.bot.launch();
 
-            // Set up command suggestions
-            await this.setupCommands().catch(error => {
-                console.warn('Failed to set up command suggestions:', error);
-                // Don't throw here as this is not critical for bot operation
-            });
-
             // Enable graceful stop
             process.once('SIGINT', () => this.bot.stop('SIGINT'));
             process.once('SIGTERM', () => this.bot.stop('SIGTERM'));
@@ -164,8 +158,10 @@ export class YeaBuddyBot {
         }
     }
 
-    public getBot(): Telegraf<BotContext> {
-        return this.bot;
-    }
+    public async runWeb(webhookUrl: string) {
+        process.once('SIGINT', () => this.bot.stop('SIGINT'));
+        process.once('SIGTERM', () => this.bot.stop('SIGTERM'));
 
+        return await this.bot.createWebhook({ domain: webhookUrl });
+    }
 }
