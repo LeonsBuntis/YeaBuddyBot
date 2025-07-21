@@ -95,11 +95,11 @@ export class TrainingManager {
 
     public formatSetSummary(exercise: Exercise, weight: number, reps: number): string {
         let response = `LIGHTWEIGHT BABY! Set logged for ${exercise.name}:\n`;
-        response += `${weight}lbs x ${reps} reps 💪\n\n`;
+        response += `${weight}kg x ${reps} reps 💪\n\n`;
         response += `Sets this exercise:\n`;
         
         exercise.sets.forEach((set, index) => {
-            response += `${index + 1}. ${set.weight}lbs x ${set.reps} reps\n`;
+            response += `${index + 1}. ${set.weight}kg x ${set.reps} reps\n`;
         });
 
         return response;
