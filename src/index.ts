@@ -1,20 +1,25 @@
-import { telegramBotToken } from './config';
+import { telegramBotToken, webhookUrl, port } from './config';
 import { YeaBuddyBot } from './bot/YeaBuddyBot';
 import express from 'express';
 
 const bot = new YeaBuddyBot(telegramBotToken);
-// bot.run().catch(console.error);
 
-const app = express();
-const port = 443;
-
-app.get('/health', (_req, res) => {
-    res.status(200).send('OK');
-});
-
-// Set the bot API endpoint
-const b = bot.getBot();
-const webhookDomain = 'https://yeabuddybot.onrender.com'; 
-app.use(await b.createWebhook({ domain: webhookDomain }));
-
-app.listen(port, () => console.log("Listening on port", port));
+if (webhookUrl) {
+    // Webhook mode - use Express
+    console.log('Starting bot in webhook mode...');
+    
+    const app = express();
+    
+    app.get('/health', (_req, res) => {
+        res.status(200).send('OK');
+    });
+    
+    const b = bot.getBot();
+    app.use(await b.createWebhook({ domain: webhookUrl }));
+    
+    app.listen(port, () => console.log(`Bot listening on port ${port} with webhook: ${webhookUrl}`));
+} else {
+    // Polling mode - use bot.run()
+    console.log('Starting bot in polling mode...');
+    bot.run().catch(console.error);
+}
