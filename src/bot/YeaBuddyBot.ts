@@ -17,12 +17,12 @@ export class YeaBuddyBot {
     constructor(token: string) {
         this.bot = new Telegraf<BotContext>(token);
         this.trainingManager = new TrainingManager();
-        
+
         // Set up session and scene middleware
         this.bot.use(session());
         const stage = createWorkoutScenes(this.trainingManager);
         this.bot.use(stage.middleware());
-        
+
         this.setupHandlers();
         this.setupCommands();
     }
@@ -102,7 +102,7 @@ export class YeaBuddyBot {
 
         const message = ctx.message.text;
         const userId = ctx.from?.id;
-        
+
         if (!userId) {
             return;
         }
@@ -131,7 +131,7 @@ export class YeaBuddyBot {
         const keyboard = Markup.keyboard([
             [Markup.button.text('YEAH BUDDY! 🏋️‍♂️')]
         ]).oneTime().resize();
-        
+
         const summary = this.trainingManager.formatSessionSummary(session);
         await ctx.reply(summary, keyboard);
     }
@@ -143,10 +143,10 @@ export class YeaBuddyBot {
     public async run(): Promise<void> {
         try {
             console.log('Starting the bot...');
-            
+
             // Launch the bot
             await this.bot.launch();
-            
+
             // Set up command suggestions
             await this.setupCommands().catch(error => {
                 console.warn('Failed to set up command suggestions:', error);
@@ -163,4 +163,9 @@ export class YeaBuddyBot {
             throw error;
         }
     }
+
+    public getBot(): Telegraf<BotContext> {
+        return this.bot;
+    }
+
 }
