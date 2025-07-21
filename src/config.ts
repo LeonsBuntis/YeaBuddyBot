@@ -4,7 +4,7 @@ config();
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
 const WEBHOOK_URL = process.env.WEBHOOK_URL;
-const PORT = process.env.PORT || '4000';
+const PORT = process.env.PORT || '443';
 
 if (!BOT_TOKEN) {
     throw new Error('BOT_TOKEN is not set in environment variables');
