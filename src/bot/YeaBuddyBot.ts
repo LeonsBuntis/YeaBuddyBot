@@ -4,6 +4,7 @@ import { handleMessage } from '../mistral';
 import { TrainingManager } from './training/TrainingSession';
 import { message } from 'telegraf/filters';
 import { createWorkoutScenes } from './scenes/WorkoutScenes';
+import { WorkoutDatabase } from '../database/WorkoutDatabase';
 
 interface BotContext extends Context {
     scene: Scenes.SceneContextScene<Scenes.SceneContext>;
@@ -13,10 +14,12 @@ interface BotContext extends Context {
 export class YeaBuddyBot {
     private bot: Telegraf<BotContext>;
     private trainingManager: TrainingManager;
+    private workoutDatabase: WorkoutDatabase;
 
     constructor(token: string) {
         this.bot = new Telegraf<BotContext>(token);
         this.trainingManager = new TrainingManager();
+        this.workoutDatabase = new WorkoutDatabase();
 
         // Set up session and scene middleware
         this.bot.use(session());
@@ -29,7 +32,8 @@ export class YeaBuddyBot {
 
     private async setupCommands(): Promise<void> {
         await this.bot.telegram.setMyCommands([
-            { command: 'pumpit', description: 'Start a new training session 🏋️‍♂️' }
+            { command: 'pumpit', description: 'Start a new training session 🏋️‍♂️' },
+            { command: 'history', description: 'View your recent workouts 📊' }
         ]);
     }
 
@@ -61,6 +65,35 @@ export class YeaBuddyBot {
                 'Let\'s make these weights fly! YEAH BUDDY! 💪',
                 keyboard
             );
+        });
+
+        // Command handler for /history - view recent workouts
+        this.bot.command('history', async (ctx) => {
+            const userId = ctx.from?.id;
+            if (!userId) return;
+
+            try {
+                await ctx.sendChatAction('typing');
+                const workouts = await this.workoutDatabase.getWorkouts(userId, 5);
+                
+                if (workouts.length === 0) {
+                    await ctx.reply('No workouts found! Start your first workout with /pumpit! 💪');
+                    return;
+                }
+
+                let historyMessage = '📊 Your Recent Workouts:\n\n';
+                
+                workouts.forEach((workout, index) => {
+                    const date = new Date(workout.completionTime).toLocaleDateString();
+                    historyMessage += `${index + 1}. ${date} - ${workout.duration} min\n`;
+                    historyMessage += `   ${workout.exercises.length} exercises, ${workout.totalSets} sets, ${workout.totalReps} reps\n\n`;
+                });
+
+                await ctx.reply(historyMessage + '💪 Keep crushing it, YEAH BUDDY!');
+            } catch (error) {
+                console.error('Error retrieving workout history:', error);
+                await ctx.reply('Sorry, couldn\'t retrieve your workout history. Try again later! 💪');
+            }
         });
 
         // Handle inline button actions
@@ -128,12 +161,30 @@ export class YeaBuddyBot {
             return;
         }
 
-        const keyboard = Markup.keyboard([
-            [Markup.button.text('YEAH BUDDY! 🏋️‍♂️')]
-        ]).oneTime().resize();
+        // Save workout to CosmosDB
+        try {
+            await ctx.sendChatAction('typing');
+            await this.workoutDatabase.saveWorkout(session);
+            
+            const keyboard = Markup.keyboard([
+                [Markup.button.text('YEAH BUDDY! 🏋️‍♂️')]
+            ]).oneTime().resize();
 
-        const summary = this.trainingManager.formatSessionSummary(session);
-        await ctx.reply(summary, keyboard);
+            const summary = this.trainingManager.formatSessionSummary(session);
+            const savedMessage = '\n\n💾 Workout saved to your history! YEAH BUDDY! 💪';
+            await ctx.reply(summary + savedMessage, keyboard);
+        } catch (error) {
+            console.error('Error saving workout to database:', error);
+            
+            // Still show the summary even if database save fails
+            const keyboard = Markup.keyboard([
+                [Markup.button.text('YEAH BUDDY! 🏋️‍♂️')]
+            ]).oneTime().resize();
+
+            const summary = this.trainingManager.formatSessionSummary(session);
+            const errorMessage = '\n\n⚠️ Workout completed but couldn\'t save to history. Contact support if this persists.';
+            await ctx.reply(summary + errorMessage, keyboard);
+        }
     }
 
     private handleError(err: unknown, ctx: Context): void {
