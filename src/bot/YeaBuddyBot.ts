@@ -110,15 +110,17 @@ export class YeaBuddyBot {
         console.log('%s: message received: %s', userId, message);
 
         // For all other messages, use Mistral AI
-        try {
-            console.log('lets try ai');
-            await ctx.sendChatAction('typing');
-            const response = await handleMessage(userId, message);
-            await ctx.reply(response);
-        } catch (error) {
-            console.log('Error handling message:', error);
-            await ctx.reply('Oh shit I\'m sorry! An error ocurred try again.');
-        }
+        // try {
+        //     console.log('lets try ai');
+        //     await ctx.sendChatAction('typing');
+        //     const response = await handleMessage(userId, message);
+        //     await ctx.reply(response);
+        // } catch (error) {
+        //     console.log('Error handling message:', error);
+        //     await ctx.reply('Oh shit I\'m sorry! An error ocurred try again.');
+        // }
+
+        await ctx.reply('Mistral is offline. I am dumb now, I can only record workouts...');
     }
 
     private async handleFinishCommand(ctx: Context, userId: number): Promise<void> {
