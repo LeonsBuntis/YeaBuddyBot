@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("YeaBuddyBotConsole")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a6c37f11658d60efc5c6c2206154ef143d563e19")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+496eb0ada5fbfba2ea6a73fc2dc5a495ba13369b")]
 [assembly: System.Reflection.AssemblyProductAttribute("YeaBuddyBotConsole")]
 [assembly: System.Reflection.AssemblyTitleAttribute("YeaBuddyBotConsole")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
