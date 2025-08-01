@@ -1,0 +1,9 @@
+{
+  "profiles": {
+    "YeaBuddyBotFunctions": {
+      "commandName": "Project",
+      "commandLineArgs": "--useHttps --port 9144",
+      "launchBrowser": false
+    }
+  }
+}

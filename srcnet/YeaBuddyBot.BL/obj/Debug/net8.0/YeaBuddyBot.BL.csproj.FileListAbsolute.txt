@@ -1,0 +1,13 @@
+C:\Projects\YeaBuddyBot\srcnet\YeaBuddyBot.BL\bin\Debug\net8.0\YeaBuddyBot.BL.deps.json
+C:\Projects\YeaBuddyBot\srcnet\YeaBuddyBot.BL\bin\Debug\net8.0\YeaBuddyBot.BL.dll
+C:\Projects\YeaBuddyBot\srcnet\YeaBuddyBot.BL\bin\Debug\net8.0\YeaBuddyBot.BL.pdb
+C:\Projects\YeaBuddyBot\srcnet\YeaBuddyBot.BL\obj\Debug\net8.0\YeaBuddyBot.BL.csproj.AssemblyReference.cache
+C:\Projects\YeaBuddyBot\srcnet\YeaBuddyBot.BL\obj\Debug\net8.0\YeaBuddyBot.BL.GeneratedMSBuildEditorConfig.editorconfig
+C:\Projects\YeaBuddyBot\srcnet\YeaBuddyBot.BL\obj\Debug\net8.0\YeaBuddyBot.BL.AssemblyInfoInputs.cache
+C:\Projects\YeaBuddyBot\srcnet\YeaBuddyBot.BL\obj\Debug\net8.0\YeaBuddyBot.BL.AssemblyInfo.cs
+C:\Projects\YeaBuddyBot\srcnet\YeaBuddyBot.BL\obj\Debug\net8.0\YeaBuddyBot.BL.csproj.CoreCompileInputs.cache
+C:\Projects\YeaBuddyBot\srcnet\YeaBuddyBot.BL\obj\Debug\net8.0\YeaBuddyBot.BL.sourcelink.json
+C:\Projects\YeaBuddyBot\srcnet\YeaBuddyBot.BL\obj\Debug\net8.0\YeaBuddyBot.BL.dll
+C:\Projects\YeaBuddyBot\srcnet\YeaBuddyBot.BL\obj\Debug\net8.0\refint\YeaBuddyBot.BL.dll
+C:\Projects\YeaBuddyBot\srcnet\YeaBuddyBot.BL\obj\Debug\net8.0\YeaBuddyBot.BL.pdb
+C:\Projects\YeaBuddyBot\srcnet\YeaBuddyBot.BL\obj\Debug\net8.0\ref\YeaBuddyBot.BL.dll

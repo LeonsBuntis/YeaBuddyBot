@@ -1,0 +1,6 @@
+C:\Projects\YeaBuddyBot\srcnet\Console.Advanced\obj\Debug\net8.0\Console.Advanced.csproj.AssemblyReference.cache
+C:\Projects\YeaBuddyBot\srcnet\Console.Advanced\obj\Debug\net8.0\Console.Advanced.GeneratedMSBuildEditorConfig.editorconfig
+C:\Projects\YeaBuddyBot\srcnet\Console.Advanced\obj\Debug\net8.0\Console.Advanced.AssemblyInfoInputs.cache
+C:\Projects\YeaBuddyBot\srcnet\Console.Advanced\obj\Debug\net8.0\Console.Advanced.AssemblyInfo.cs
+C:\Projects\YeaBuddyBot\srcnet\Console.Advanced\obj\Debug\net8.0\Console.Advanced.csproj.CoreCompileInputs.cache
+C:\Projects\YeaBuddyBot\srcnet\Console.Advanced\obj\Debug\net8.0\Console.Advanced.sourcelink.json
