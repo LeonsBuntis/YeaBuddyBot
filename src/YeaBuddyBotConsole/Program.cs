@@ -1,8 +1,9 @@
-﻿using Microsoft.Extensions.Options;
+﻿using Console.Advanced.Services;
+using Microsoft.Extensions.Options;
 using Telegram.Bot;
-using Console.Advanced;
-using Console.Advanced.Services;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using YeaBuddyBot.Services;
 
 IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
