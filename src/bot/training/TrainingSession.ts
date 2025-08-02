@@ -27,7 +27,7 @@ export class TrainingManager {
         const newSession: TrainingSession = {
             userId,
             exercises: [],
-            startTime: new Date()
+            startTime: new Date(),
         };
 
         this.activeSessions.set(userId, newSession);
@@ -42,7 +42,7 @@ export class TrainingManager {
 
         session.exercises.push({
             name: exerciseName,
-            sets: []
+            sets: [],
         });
 
         return true;
@@ -83,7 +83,7 @@ export class TrainingManager {
         summary += `Duration: ${duration} minutes\n\n`;
         summary += `Exercises:\n`;
 
-        session.exercises.forEach(exercise => {
+        session.exercises.forEach((exercise) => {
             summary += `\n${exercise.name}:\n`;
             exercise.sets.forEach((set, index) => {
                 summary += `Set ${index + 1}: ${set.weight}kg x ${set.reps} reps\n`;
@@ -97,7 +97,7 @@ export class TrainingManager {
         let response = `LIGHTWEIGHT BABY! Set logged for ${exercise.name}:\n`;
         response += `${weight}kg x ${reps} reps 💪\n\n`;
         response += `Sets this exercise:\n`;
-        
+
         exercise.sets.forEach((set, index) => {
             response += `${index + 1}. ${set.weight}kg x ${set.reps} reps\n`;
         });

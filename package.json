@@ -7,7 +7,13 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsx watch src/index.ts"
+    "dev": "tsx --watch src/index.ts",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint --fix .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "engines": {
     "node": ">=22.0.0"
@@ -16,10 +22,16 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@eslint/js": "^9.32.0",
+    "@tsconfig/node22": "^22.0.2",
     "@types/express": "^5.0.3",
-    "@types/node": "^24.0.15",
+    "@types/node": "^24.1.0",
+    "eslint": "^9.32.0",
+    "eslint-plugin-perfectionist": "^4.15.0",
+    "prettier": "^3.6.2",
     "tsx": "^4.20.3",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.x",
+    "typescript-eslint": "^8.38.0"
   },
   "dependencies": {
     "@mistralai/mistralai": "^1.7.4",
