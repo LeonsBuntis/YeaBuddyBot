@@ -1,3 +1,5 @@
+import { Repository, Workout } from "../../infrastructure/Repository.js";
+
 export interface Exercise {
     name: string;
     sets: Array<{
@@ -14,9 +16,11 @@ export interface TrainingSession {
 
 export class TrainingManager {
     private activeSessions: Map<number, TrainingSession>;
+    private repo: Repository;
 
     constructor() {
         this.activeSessions = new Map();
+        this.repo = new Repository();
     }
 
     public startSession(userId: number): boolean {
@@ -68,6 +72,23 @@ export class TrainingManager {
         if (!session) {
             return null;
         }
+
+        // Convert session to Workout and save to repository
+        const workout = new Workout(
+            session.userId,
+            session.startTime,
+            session.exercises.map((ex) => ({
+                userId: String(session.userId),
+                name: ex.name,
+                sets: ex.sets.map((set) => ({
+                    weight: set.weight,
+                    reps: set.reps,
+                })),
+            })),
+        );
+        this.repo.saveWorkout(workout).catch((err) => {
+            console.error("Failed to save workout:", err);
+        });
 
         this.activeSessions.delete(userId);
         return session;
