@@ -20,11 +20,11 @@ if (webhookUrl) {
 
     // Serve the mini-app
     app.get("/mini-app/", (_req, res) => {
-        res.sendFile(path.join(__dirname, "mini-app", "index.html"));
+        res.sendFile(path.join(__dirname, "mini-app", "dist", "index.html"));
     });
 
     // Serve static files for the mini-app (CSS, JS, etc.)
-    app.use("/mini-app", express.static(path.join(__dirname, "mini-app")));
+    app.use("/mini-app", express.static(path.join(__dirname, "mini-app", "dist")));
 
     app.use(await bot.runWeb(webhookUrl));
 
