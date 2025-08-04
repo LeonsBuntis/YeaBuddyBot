@@ -14,9 +14,6 @@ if (webhookUrl) {
     console.log("Starting bot in webhook mode...");
 
     const app = express();
-    
-    // Enable JSON parsing
-    app.use(express.json());
 
     app.get("/health", (_req, res) => {
         res.status(200).send("OK");
@@ -29,8 +26,6 @@ if (webhookUrl) {
 
     // Serve static files for the mini-app (CSS, JS, etc.)
     app.use("/mini-app", express.static(path.join(__dirname, "mini-app", "dist")));
-
-
 
     app.use(await bot.runWeb(webhookUrl));
 
