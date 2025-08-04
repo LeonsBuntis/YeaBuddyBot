@@ -1,6 +1,11 @@
 import express from "express";
+import path from "path";
+import { fileURLToPath } from "url";
 import { YeaBuddyBot } from "./bot/YeaBuddyBot.js";
 import { telegramBotToken, webhookUrl, port } from "./config.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const bot = new YeaBuddyBot(telegramBotToken);
 
@@ -12,6 +17,14 @@ if (webhookUrl) {
     app.get("/health", (_req, res) => {
         res.status(200).send("OK");
     });
+
+    // Serve the mini-app
+    app.get("/mini-app/", (_req, res) => {
+        res.sendFile(path.join(__dirname, "mini-app", "index.html"));
+    });
+
+    // Serve static files for the mini-app (CSS, JS, etc.)
+    app.use("/mini-app", express.static(path.join(__dirname, "mini-app")));
 
     app.use(await bot.runWeb(webhookUrl));
 
