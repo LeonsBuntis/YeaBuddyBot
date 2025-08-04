@@ -1,6 +1,6 @@
 import type { FC } from 'react';
 
-import { cloudStorage } from '@telegram-apps/sdk';
+import { cloudStorage, sendData } from '@telegram-apps/sdk';
 import { useRawInitData } from '@telegram-apps/sdk-react';
 import { Button, Headline, Input } from '@telegram-apps/telegram-ui';
 import { useEffect, useState } from 'react';
@@ -159,12 +159,12 @@ export const WorkoutPage: FC = () => {
         endTime: new Date().toISOString()
       };
 
-      // Send data to bot using Telegram Web App API
-      if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.sendData) {
+      // Send data to bot using Telegram SDK
+      if (sendData.isAvailable()) {
         try {
           const workoutData = JSON.stringify(completedWorkout);
-          // Use the native Telegram Web App API
-          (window as any).Telegram.WebApp.sendData(workoutData);
+          // Use the Telegram SDK sendData method
+          sendData(workoutData);
           
           // Clear the current session from CloudStorage
           if (cloudStorage.isSupported() && cloudStorage.deleteItem.isAvailable()) {
@@ -175,7 +175,7 @@ export const WorkoutPage: FC = () => {
           // So no need to redirect manually
           return;
         } catch (sendDataError) {
-          console.warn('Telegram.WebApp.sendData not available or failed:', sendDataError);
+          console.warn('sendData not available or failed:', sendDataError);
           // Fall through to fallback
         }
       }
