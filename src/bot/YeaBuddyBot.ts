@@ -136,7 +136,11 @@ export class YeaBuddyBot {
         }
 
         const message = ctx.message.text;
-        const userId = ctx.from.id;
+        const userId = ctx.from?.id;
+
+        if (!userId) {
+            return;
+        }
 
         console.log("%s: message received: %s", userId, message);
 
