@@ -1,5 +1,6 @@
 import { Button, Input, Headline } from '@telegram-apps/telegram-ui';
 import { useRawInitData } from '@telegram-apps/sdk-react';
+import { cloudStorage } from '@telegram-apps/sdk';
 import type { FC } from 'react';
 import { useState, useEffect } from 'react';
 
@@ -61,12 +62,31 @@ export const WorkoutPage: FC = () => {
     if (!userId) return;
     
     try {
-      const response = await fetch(`/api/workout/${userId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setSession(data);
+      if (cloudStorage.isSupported() && cloudStorage.getItem.isAvailable()) {
+        const sessionData = await cloudStorage.getItem('current_workout_session');
+        if (sessionData) {
+          const parsedSession = JSON.parse(sessionData);
+          setSession(parsedSession);
+        } else {
+          // Create new workout session if none exists
+          const newSession: WorkoutSession = {
+            userId,
+            exercises: [],
+            startTime: new Date().toISOString()
+          };
+          if (cloudStorage.setItem.isAvailable()) {
+            await cloudStorage.setItem('current_workout_session', JSON.stringify(newSession));
+          }
+          setSession(newSession);
+        }
       } else {
-        setError('No active workout session found');
+        // Fallback to creating a session in memory if CloudStorage is not available
+        const newSession: WorkoutSession = {
+          userId,
+          exercises: [],
+          startTime: new Date().toISOString()
+        };
+        setSession(newSession);
       }
     } catch (err) {
       setError('Failed to load workout session');
@@ -77,23 +97,23 @@ export const WorkoutPage: FC = () => {
   };
 
   const addExercise = async () => {
-    if (!userId || !newExerciseName.trim()) return;
+    if (!userId || !newExerciseName.trim() || !session) return;
 
     try {
-      const response = await fetch(`/api/workout/${userId}/exercise`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newExerciseName.trim() })
-      });
+      const updatedSession = {
+        ...session,
+        exercises: [
+          ...session.exercises,
+          { name: newExerciseName.trim(), sets: [] }
+        ]
+      };
 
-      if (response.ok) {
-        const updatedSession = await response.json();
-        setSession(updatedSession);
-        setNewExerciseName('');
-        setShowAddExercise(false);
-      } else {
-        setError('Failed to add exercise');
+      if (cloudStorage.isSupported() && cloudStorage.setItem.isAvailable()) {
+        await cloudStorage.setItem('current_workout_session', JSON.stringify(updatedSession));
       }
+      setSession(updatedSession);
+      setNewExerciseName('');
+      setShowAddExercise(false);
     } catch (err) {
       setError('Failed to add exercise');
       console.error('Error adding exercise:', err);
@@ -101,27 +121,25 @@ export const WorkoutPage: FC = () => {
   };
 
   const addSet = async (exerciseIndex: number) => {
-    if (!userId || !newWeight || !newReps) return;
+    if (!userId || !newWeight || !newReps || !session) return;
 
     try {
-      const response = await fetch(`/api/workout/${userId}/set`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          exerciseIndex,
+      const updatedSession = { ...session };
+      if (updatedSession.exercises[exerciseIndex]) {
+        updatedSession.exercises[exerciseIndex].sets.push({
           weight: parseFloat(newWeight),
           reps: parseInt(newReps)
-        })
-      });
+        });
 
-      if (response.ok) {
-        const updatedSession = await response.json();
+        if (cloudStorage.isSupported() && cloudStorage.setItem.isAvailable()) {
+          await cloudStorage.setItem('current_workout_session', JSON.stringify(updatedSession));
+        }
         setSession(updatedSession);
         setNewWeight('');
         setNewReps('');
         setShowAddSet(null);
       } else {
-        setError('Failed to add set');
+        setError('Invalid exercise');
       }
     } catch (err) {
       setError('Failed to add set');
@@ -130,20 +148,38 @@ export const WorkoutPage: FC = () => {
   };
 
   const finishWorkout = async () => {
-    if (!userId) return;
+    if (!userId || !session) return;
 
     try {
-      const response = await fetch(`/api/workout/${userId}/finish`, {
-        method: 'POST'
-      });
+      // Store the completed workout in history
+      const completedWorkout = {
+        ...session,
+        endTime: new Date().toISOString(),
+        completed: true
+      };
 
-      if (response.ok) {
-        // Show success message and redirect
-        alert('Workout completed! YEAH BUDDY! 💪');
-        window.location.href = '/';
-      } else {
-        setError('Failed to finish workout');
+      if (cloudStorage.isSupported()) {
+        // Get existing workout history
+        if (cloudStorage.getItem.isAvailable()) {
+          const historyData = await cloudStorage.getItem('workout_history');
+          const history = historyData ? JSON.parse(historyData) : [];
+          
+          // Add the completed workout to history
+          history.push(completedWorkout);
+          if (cloudStorage.setItem.isAvailable()) {
+            await cloudStorage.setItem('workout_history', JSON.stringify(history));
+          }
+        }
+        
+        // Clear the current session
+        if (cloudStorage.deleteItem.isAvailable()) {
+          await cloudStorage.deleteItem('current_workout_session');
+        }
       }
+
+      // Show success message and redirect
+      alert('Workout completed! YEAH BUDDY! 💪');
+      window.location.href = '/';
     } catch (err) {
       setError('Failed to finish workout');
       console.error('Error finishing workout:', err);
@@ -155,16 +191,11 @@ export const WorkoutPage: FC = () => {
 
     if (confirm('Are you sure you want to cancel this workout?')) {
       try {
-        const response = await fetch(`/api/workout/${userId}/cancel`, {
-          method: 'POST'
-        });
-
-        if (response.ok) {
-          alert('Workout cancelled');
-          window.location.href = '/';
-        } else {
-          setError('Failed to cancel workout');
+        if (cloudStorage.isSupported() && cloudStorage.deleteItem.isAvailable()) {
+          await cloudStorage.deleteItem('current_workout_session');
         }
+        alert('Workout cancelled');
+        window.location.href = '/';
       } catch (err) {
         setError('Failed to cancel workout');
         console.error('Error cancelling workout:', err);

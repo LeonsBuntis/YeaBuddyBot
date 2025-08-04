@@ -202,24 +202,5 @@ export class YeaBuddyBot {
         return await this.bot.createWebhook({ domain: webhookUrl });
     }
 
-    // Public methods for API access
-    public getWorkoutSession(userId: number): TrainingSession | null {
-        return this.trainingManager.getActiveSession(userId);
-    }
 
-    public addExerciseToSession(userId: number, exerciseName: string): boolean {
-        return this.trainingManager.addExercise(userId, exerciseName);
-    }
-
-    public addSetToSession(userId: number, exerciseIndex: number, weight: number, reps: number): boolean {
-        return this.trainingManager.addSetToExercise(userId, exerciseIndex, weight, reps);
-    }
-
-    public finishWorkoutSession(userId: number): TrainingSession | null {
-        return this.trainingManager.finishSession(userId);
-    }
-
-    public cancelWorkoutSession(userId: number): boolean {
-        return this.trainingManager.cancelSession(userId);
-    }
 }
