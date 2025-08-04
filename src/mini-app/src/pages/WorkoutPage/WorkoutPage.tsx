@@ -1,0 +1,466 @@
+import { Button, Input, Headline } from '@telegram-apps/telegram-ui';
+import { useRawInitData } from '@telegram-apps/sdk-react';
+import type { FC } from 'react';
+import { useState, useEffect } from 'react';
+
+import { Page } from '@/components/Page.tsx';
+
+interface Set {
+  weight: number;
+  reps: number;
+}
+
+interface Exercise {
+  name: string;
+  sets: Set[];
+}
+
+interface WorkoutSession {
+  userId: number;
+  exercises: Exercise[];
+  startTime: string;
+}
+
+export const WorkoutPage: FC = () => {
+  const rawInitData = useRawInitData();
+  
+  // Parse user ID from raw init data
+  const getUserIdFromInitData = (): number | null => {
+    if (!rawInitData) return null;
+    try {
+      const params = new URLSearchParams(rawInitData);
+      const userParam = params.get('user');
+      if (userParam) {
+        const user = JSON.parse(userParam);
+        return user.id;
+      }
+    } catch (error) {
+      console.error('Failed to parse init data:', error);
+    }
+    return null;
+  };
+
+  const userId = getUserIdFromInitData();
+  
+  const [session, setSession] = useState<WorkoutSession | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showAddExercise, setShowAddExercise] = useState(false);
+  const [newExerciseName, setNewExerciseName] = useState('');
+  const [showAddSet, setShowAddSet] = useState<number | null>(null);
+  const [newWeight, setNewWeight] = useState('');
+  const [newReps, setNewReps] = useState('');
+
+  useEffect(() => {
+    if (userId) {
+      loadWorkoutSession();
+    }
+  }, [userId]);
+
+  const loadWorkoutSession = async () => {
+    if (!userId) return;
+    
+    try {
+      const response = await fetch(`/api/workout/${userId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setSession(data);
+      } else {
+        setError('No active workout session found');
+      }
+    } catch (err) {
+      setError('Failed to load workout session');
+      console.error('Error loading workout:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addExercise = async () => {
+    if (!userId || !newExerciseName.trim()) return;
+
+    try {
+      const response = await fetch(`/api/workout/${userId}/exercise`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newExerciseName.trim() })
+      });
+
+      if (response.ok) {
+        const updatedSession = await response.json();
+        setSession(updatedSession);
+        setNewExerciseName('');
+        setShowAddExercise(false);
+      } else {
+        setError('Failed to add exercise');
+      }
+    } catch (err) {
+      setError('Failed to add exercise');
+      console.error('Error adding exercise:', err);
+    }
+  };
+
+  const addSet = async (exerciseIndex: number) => {
+    if (!userId || !newWeight || !newReps) return;
+
+    try {
+      const response = await fetch(`/api/workout/${userId}/set`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          exerciseIndex,
+          weight: parseFloat(newWeight),
+          reps: parseInt(newReps)
+        })
+      });
+
+      if (response.ok) {
+        const updatedSession = await response.json();
+        setSession(updatedSession);
+        setNewWeight('');
+        setNewReps('');
+        setShowAddSet(null);
+      } else {
+        setError('Failed to add set');
+      }
+    } catch (err) {
+      setError('Failed to add set');
+      console.error('Error adding set:', err);
+    }
+  };
+
+  const finishWorkout = async () => {
+    if (!userId) return;
+
+    try {
+      const response = await fetch(`/api/workout/${userId}/finish`, {
+        method: 'POST'
+      });
+
+      if (response.ok) {
+        // Show success message and redirect
+        alert('Workout completed! YEAH BUDDY! 💪');
+        window.location.href = '/';
+      } else {
+        setError('Failed to finish workout');
+      }
+    } catch (err) {
+      setError('Failed to finish workout');
+      console.error('Error finishing workout:', err);
+    }
+  };
+
+  const cancelWorkout = async () => {
+    if (!userId) return;
+
+    if (confirm('Are you sure you want to cancel this workout?')) {
+      try {
+        const response = await fetch(`/api/workout/${userId}/cancel`, {
+          method: 'POST'
+        });
+
+        if (response.ok) {
+          alert('Workout cancelled');
+          window.location.href = '/';
+        } else {
+          setError('Failed to cancel workout');
+        }
+      } catch (err) {
+        setError('Failed to cancel workout');
+        console.error('Error cancelling workout:', err);
+      }
+    }
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    });
+  };
+
+  const getPreviousSet = (exercise: Exercise, setIndex: number): Set | null => {
+    if (setIndex > 0) {
+      return exercise.sets[setIndex - 1] || null;
+    }
+    return null;
+  };
+
+  if (loading) {
+    return (
+      <Page back={true}>
+        <div style={{ padding: '20px', textAlign: 'center' }}>
+          Loading workout...
+        </div>
+      </Page>
+    );
+  }
+
+  if (error || !session) {
+    return (
+      <Page back={true}>
+        <div style={{ padding: '20px', textAlign: 'center' }}>
+          <p>{error || 'No workout session found'}</p>
+          <Button onClick={() => window.location.href = '/'}>
+            Go Home
+          </Button>
+        </div>
+      </Page>
+    );
+  }
+
+  return (
+    <Page back={true}>
+      <div style={{ padding: '16px' }}>
+        {/* Header */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          marginBottom: '20px'
+        }}>
+          <div>
+            <Headline weight="2">Morning Workout</Headline>
+            <div style={{ color: 'var(--tg-theme-hint-color)', fontSize: '14px' }}>
+              {formatTime(session.startTime)}
+            </div>
+          </div>
+          <Button 
+            size="s" 
+            mode="filled"
+            onClick={finishWorkout}
+            style={{ backgroundColor: '#34C759' }}
+          >
+            Finish
+          </Button>
+        </div>
+
+        {/* Exercises */}
+        {session.exercises.map((exercise, exerciseIndex) => (
+          <div key={exerciseIndex} style={{ marginBottom: '24px' }}>
+            {/* Exercise Header */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center',
+              marginBottom: '8px'
+            }}>
+              <h3 style={{ 
+                color: 'var(--tg-theme-link-color)', 
+                margin: 0,
+                fontSize: '16px',
+                fontWeight: '600'
+              }}>
+                {exercise.name}
+              </h3>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <Button size="s" mode="plain">📊</Button>
+                <Button size="s" mode="plain">⋯</Button>
+              </div>
+            </div>
+
+            {/* Watch back rounding warning */}
+            <div style={{
+              backgroundColor: 'rgba(255, 204, 0, 0.15)',
+              padding: '8px 12px',
+              borderRadius: '8px',
+              marginBottom: '12px',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <span style={{ fontSize: '16px' }}>⚠️</span>
+              Watch back rounding
+            </div>
+
+            {/* Sets Table Header */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '40px 80px 60px 60px 40px',
+              gap: '8px',
+              padding: '8px 0',
+              borderBottom: '1px solid var(--tg-theme-separator-color)',
+              fontSize: '14px',
+              fontWeight: '600',
+              color: 'var(--tg-theme-hint-color)'
+            }}>
+              <div>Set</div>
+              <div>Previous</div>
+              <div>kg</div>
+              <div>Reps</div>
+              <div></div>
+            </div>
+
+            {/* Sets */}
+            {exercise.sets.map((set, setIndex) => {
+              const previousSet = getPreviousSet(exercise, setIndex);
+              return (
+                <div key={setIndex} style={{
+                  display: 'grid',
+                  gridTemplateColumns: '40px 80px 60px 60px 40px',
+                  gap: '8px',
+                  padding: '12px 0',
+                  borderBottom: setIndex < exercise.sets.length - 1 ? '1px solid var(--tg-theme-separator-color)' : 'none',
+                  alignItems: 'center'
+                }}>
+                  <div style={{ fontWeight: '600' }}>
+                    {setIndex === 0 ? 'W' : (setIndex).toString()}
+                  </div>
+                  <div style={{ 
+                    fontSize: '12px', 
+                    color: 'var(--tg-theme-hint-color)' 
+                  }}>
+                    {previousSet ? `${previousSet.weight} kg x ${previousSet.reps}` : '-'}
+                  </div>
+                  <div style={{ fontWeight: '600' }}>{set.weight}</div>
+                  <div style={{ fontWeight: '600' }}>{set.reps}</div>
+                  <div style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    backgroundColor: '#34C759',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '14px'
+                  }}>
+                    ✓
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Add Set Form */}
+            {showAddSet === exerciseIndex ? (
+              <div style={{ 
+                padding: '16px', 
+                backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+                borderRadius: '8px',
+                marginTop: '8px'
+              }}>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                  <Input
+                    header="Weight (kg)"
+                    placeholder="0"
+                    value={newWeight}
+                    onChange={(e) => setNewWeight(e.target.value)}
+                    type="number"
+                    style={{ flex: 1 }}
+                  />
+                  <Input
+                    header="Reps"
+                    placeholder="0"
+                    value={newReps}
+                    onChange={(e) => setNewReps(e.target.value)}
+                    type="number"
+                    style={{ flex: 1 }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <Button 
+                    size="s" 
+                    mode="filled" 
+                    onClick={() => addSet(exerciseIndex)}
+                    disabled={!newWeight || !newReps}
+                    style={{ flex: 1 }}
+                  >
+                    Add Set
+                  </Button>
+                  <Button 
+                    size="s" 
+                    mode="outline" 
+                    onClick={() => setShowAddSet(null)}
+                    style={{ flex: 1 }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                size="s"
+                mode="plain"
+                onClick={() => setShowAddSet(exerciseIndex)}
+                style={{ 
+                  marginTop: '8px',
+                  color: 'var(--tg-theme-link-color)',
+                  fontSize: '14px'
+                }}
+              >
+                + Add Set
+              </Button>
+            )}
+          </div>
+        ))}
+
+        {/* Add Exercise Form */}
+        {showAddExercise ? (
+          <div style={{ 
+            padding: '16px', 
+            backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+            borderRadius: '8px',
+            marginBottom: '16px'
+          }}>
+            <Input
+              header="Exercise Name"
+              placeholder="Enter exercise name"
+              value={newExerciseName}
+              onChange={(e) => setNewExerciseName(e.target.value)}
+              style={{ marginBottom: '12px' }}
+            />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <Button 
+                size="s" 
+                mode="filled" 
+                onClick={addExercise}
+                disabled={!newExerciseName.trim()}
+                style={{ flex: 1 }}
+              >
+                Add Exercise
+              </Button>
+              <Button 
+                size="s" 
+                mode="outline" 
+                onClick={() => setShowAddExercise(false)}
+                style={{ flex: 1 }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button
+            size="m"
+            mode="filled"
+            onClick={() => setShowAddExercise(true)}
+            style={{ 
+              width: '100%',
+              marginBottom: '16px',
+              backgroundColor: 'var(--tg-theme-link-color)'
+            }}
+          >
+            Add Exercises
+          </Button>
+        )}
+
+        {/* Cancel Workout Button */}
+        <Button
+          size="m"
+          mode="outline"
+          onClick={cancelWorkout}
+          style={{ 
+            width: '100%',
+            color: '#FF3B30',
+            borderColor: '#FF3B30'
+          }}
+        >
+          Cancel Workout
+        </Button>
+      </div>
+    </Page>
+  );
+};

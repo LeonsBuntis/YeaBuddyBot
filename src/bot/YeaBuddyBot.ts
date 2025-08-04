@@ -2,9 +2,9 @@ import { Context, Markup, Telegraf } from "telegraf";
 import { Scenes, session } from "telegraf";
 import { message } from "telegraf/filters";
 
-import { createWorkoutScenes } from "./scenes/WorkoutScenes.js";
-import { TrainingManager } from "./training/TrainingSession.js";
 import { appVersion, webappUrl } from "../config.js";
+import { createWorkoutScenes } from "./scenes/WorkoutScenes.js";
+import { TrainingManager, TrainingSession } from "./training/TrainingSession.js";
 
 interface BotContext extends Context {
     scene: Scenes.SceneContextScene<Scenes.SceneContext>;
@@ -30,6 +30,7 @@ export class YeaBuddyBot {
 
     private async setupCommands(): Promise<void> {
         await this.bot.telegram.setMyCommands([
+            { command: "startworkout", description: "Start workout with mini-app 🏋️‍♂️" },
             { command: "pumpit", description: "Start a new training session 🏋️‍♂️" },
             { command: "app", description: "Open YeaBuddy Mini App 🚀" },
             { command: "version", description: "Show current app version" },
@@ -57,10 +58,29 @@ export class YeaBuddyBot {
             );
         });
 
+        // Command handler for /startworkout - start workout and open mini-app
+        this.bot.command("startworkout", async (ctx) => {
+            const userId = ctx.from.id;
+
+            if (this.trainingManager.hasActiveSession(userId)) {
+                await ctx.reply("You already have an active training session! FOCUS! 💪\nFinish your current session first.");
+                return;
+            }
+
+            this.trainingManager.startSession(userId);
+            const keyboard = Markup.inlineKeyboard([[Markup.button.webApp("🏋️‍♂️ Open Workout Logger", `${webappUrl}#/workout`)]]);
+
+            await ctx.reply(
+                "YEAH BUDDY! 🏋️‍♂️ New workout session started!\n\n" +
+                    "Ready to pump some iron? Open the Workout Logger to track your sets!\n\n" +
+                    "LIGHT WEIGHT BABY! 💪",
+                keyboard,
+            );
+        });
+
         // Command handler for /pumpit - start a training session
         this.bot.command("pumpit", async (ctx) => {
-            const userId = ctx.from?.id;
-            if (!userId) return;
+            const userId = ctx.from.id;
 
             if (this.trainingManager.hasActiveSession(userId)) {
                 await ctx.reply("You already have an active training session! FOCUS! 💪\nUse /finish to end your current session.");
@@ -83,24 +103,21 @@ export class YeaBuddyBot {
 
         // Handle inline button actions
         this.bot.action("addExercise", async (ctx) => {
-            const userId = ctx.from?.id;
-            if (!userId) return;
+            const userId = ctx.from.id;
 
             await ctx.answerCbQuery();
             await ctx.scene.enter("addExercise");
         });
 
         this.bot.action("finish", async (ctx) => {
-            const userId = ctx.from?.id;
-            if (!userId) return;
+            const userId = ctx.from.id;
 
             await ctx.answerCbQuery();
             await this.handleFinishCommand(ctx, userId);
         });
 
         this.bot.action("addSet", async (ctx) => {
-            const userId = ctx.from?.id;
-            if (!userId) return;
+            const userId = ctx.from.id;
 
             await ctx.answerCbQuery();
             await ctx.scene.enter("addSet");
@@ -119,11 +136,7 @@ export class YeaBuddyBot {
         }
 
         const message = ctx.message.text;
-        const userId = ctx.from?.id;
-
-        if (!userId) {
-            return;
-        }
+        const userId = ctx.from.id;
 
         console.log("%s: message received: %s", userId, message);
 
@@ -183,5 +196,26 @@ export class YeaBuddyBot {
         process.once("SIGTERM", () => this.bot.stop("SIGTERM"));
 
         return await this.bot.createWebhook({ domain: webhookUrl });
+    }
+
+    // Public methods for API access
+    public getWorkoutSession(userId: number): TrainingSession | null {
+        return this.trainingManager.getActiveSession(userId);
+    }
+
+    public addExerciseToSession(userId: number, exerciseName: string): boolean {
+        return this.trainingManager.addExercise(userId, exerciseName);
+    }
+
+    public addSetToSession(userId: number, exerciseIndex: number, weight: number, reps: number): boolean {
+        return this.trainingManager.addSetToExercise(userId, exerciseIndex, weight, reps);
+    }
+
+    public finishWorkoutSession(userId: number): TrainingSession | null {
+        return this.trainingManager.finishSession(userId);
+    }
+
+    public cancelWorkoutSession(userId: number): boolean {
+        return this.trainingManager.cancelSession(userId);
     }
 }

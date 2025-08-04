@@ -98,6 +98,29 @@ export class TrainingManager {
         return this.activeSessions.has(userId);
     }
 
+    public getActiveSession(userId: number): TrainingSession | null {
+        return this.activeSessions.get(userId) || null;
+    }
+
+    public addSetToExercise(userId: number, exerciseIndex: number, weight: number, reps: number): boolean {
+        const session = this.activeSessions.get(userId);
+        if (!session || exerciseIndex < 0 || exerciseIndex >= session.exercises.length) {
+            return false;
+        }
+
+        const exercise = session.exercises[exerciseIndex];
+        if (!exercise) {
+            return false;
+        }
+
+        exercise.sets.push({ weight, reps });
+        return true;
+    }
+
+    public cancelSession(userId: number): boolean {
+        return this.activeSessions.delete(userId);
+    }
+
     public formatSessionSummary(session: TrainingSession): string {
         const duration = Math.round((new Date().getTime() - session.startTime.getTime()) / 1000 / 60);
         let summary = `YEAH BUDDY! Training session completed! 💪\n\n`;
