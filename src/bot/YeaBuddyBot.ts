@@ -3,6 +3,7 @@ import { Scenes, session } from "telegraf";
 import { message } from "telegraf/filters";
 
 import { appVersion, webappUrl } from "../config.js";
+import { Repository, Workout, Exercise, Set } from "../infrastructure/Repository.js";
 import { createWorkoutScenes } from "./scenes/WorkoutScenes.js";
 import { TrainingManager, TrainingSession } from "./training/TrainingSession.js";
 
@@ -14,10 +15,12 @@ interface BotContext extends Context {
 export class YeaBuddyBot {
     private bot: Telegraf<BotContext>;
     private trainingManager: TrainingManager;
+    private repository: Repository;
 
     constructor(token: string) {
         this.bot = new Telegraf<BotContext>(token);
         this.trainingManager = new TrainingManager();
+        this.repository = new Repository();
 
         // Set up session and scene middleware
         this.bot.use(session());
@@ -123,6 +126,9 @@ export class YeaBuddyBot {
             await ctx.scene.enter("addSet");
         });
 
+        // Handle web app data (from mini-app sendData)
+        this.bot.on("web_app_data", this.handleWebAppData.bind(this));
+
         // Handle text messages
         this.bot.on(message("text"), this.handleTextMessage.bind(this));
 
@@ -156,6 +162,58 @@ export class YeaBuddyBot {
         // }
 
         await ctx.reply("Mistral is offline. I am dumb now, I can only record workouts...");
+    }
+
+    private async handleWebAppData(ctx: Context): Promise<void> {
+        if (!ctx.message || !("web_app_data" in ctx.message)) {
+            return;
+        }
+
+        const userId = ctx.from?.id;
+        if (!userId) {
+            return;
+        }
+
+        try {
+            const webAppData = ctx.message.web_app_data;
+            const workoutData = JSON.parse(webAppData.data);
+            
+            console.log(`Received workout data from user ${userId}:`, workoutData);
+
+            // Convert the mini-app workout format to Repository format
+            const workout = new Workout(
+                userId,
+                new Date(workoutData.startTime),
+                workoutData.exercises.map((exercise: any) => new Exercise(
+                    userId.toString(),
+                    exercise.name,
+                    exercise.sets.map((set: any) => new Set(set.weight, set.reps))
+                ))
+            );
+
+            // Set the end time if provided
+            if (workoutData.endTime) {
+                workout.endTime = new Date(workoutData.endTime);
+            }
+
+            // Save workout to Cosmos DB
+            await this.repository.saveWorkout(workout);
+
+            // Finish the active training session if it exists
+            this.trainingManager.finishSession(userId);
+
+            // Send confirmation message
+            await ctx.reply(
+                "YEAH BUDDY! 🏋️‍♂️ Workout saved successfully!\n\n" +
+                `💪 ${workout.excercises.length} exercises completed\n` +
+                `🔥 ${workout.excercises.reduce((total, ex) => total + ex.sets.length, 0)} total sets\n\n` +
+                "Keep pushing those limits! LIGHT WEIGHT BABY! 💪"
+            );
+
+        } catch (error) {
+            console.error('Error handling web app data:', error);
+            await ctx.reply("Failed to save workout data. Please try again! 💪");
+        }
     }
 
     private async handleFinishCommand(ctx: Context, userId: number): Promise<void> {

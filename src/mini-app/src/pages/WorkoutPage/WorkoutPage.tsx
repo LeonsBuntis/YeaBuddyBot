@@ -151,13 +151,35 @@ export const WorkoutPage: FC = () => {
     if (!userId || !session) return;
 
     try {
-      // Store the completed workout in history
+      // Prepare the completed workout data
       const completedWorkout = {
         ...session,
         endTime: new Date().toISOString(),
         completed: true
       };
 
+      // Send data to bot using Telegram Web App API
+      if (typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.sendData) {
+        try {
+          const workoutData = JSON.stringify(completedWorkout);
+          // Use the native Telegram Web App API
+          (window as any).Telegram.WebApp.sendData(workoutData);
+          
+          // Clear the current session from CloudStorage
+          if (cloudStorage.isSupported() && cloudStorage.deleteItem.isAvailable()) {
+            await cloudStorage.deleteItem('current_workout_session');
+          }
+          
+          // The mini-app will be closed by Telegram after sending data
+          // So no need to redirect manually
+          return;
+        } catch (sendDataError) {
+          console.warn('Telegram.WebApp.sendData not available or failed:', sendDataError);
+          // Fall through to fallback
+        }
+      }
+
+      // Fallback: Store locally if sendData is not available
       if (cloudStorage.isSupported()) {
         // Get existing workout history
         if (cloudStorage.getItem.isAvailable()) {
