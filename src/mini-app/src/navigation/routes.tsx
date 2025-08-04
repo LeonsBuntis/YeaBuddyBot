@@ -8,29 +8,27 @@ import { TONConnectPage } from '@/pages/TONConnectPage/TONConnectPage';
 import { WorkoutPage } from '@/pages/WorkoutPage/WorkoutPage';
 
 interface Route {
-  path: string;
   Component: ComponentType;
-  title?: string;
   icon?: JSX.Element;
+  path: string;
+  title?: string;
 }
 
 export const routes: Route[] = [
-  { path: '/', Component: IndexPage },
-  { path: '/workout', Component: WorkoutPage, title: 'Workout' },
-  { path: '/init-data', Component: InitDataPage, title: 'Init Data' },
-  { path: '/theme-params', Component: ThemeParamsPage, title: 'Theme Params' },
-  { path: '/launch-params', Component: LaunchParamsPage, title: 'Launch Params' },
+  { Component: IndexPage, path: '/' },
+  { Component: WorkoutPage, path: '/workout', title: 'Workout' },
+  { Component: InitDataPage, path: '/init-data', title: 'Init Data' },
+  { Component: ThemeParamsPage, path: '/theme-params', title: 'Theme Params' },
+  { Component: LaunchParamsPage, path: '/launch-params', title: 'Launch Params' },
   {
-    path: '/ton-connect',
     Component: TONConnectPage,
-    title: 'TON Connect',
     icon: (
       <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="100%"
+        fill="none"
         height="100%"
         viewBox="0 0 56 56"
-        fill="none"
+        width="100%"
+        xmlns="http://www.w3.org/2000/svg"
       >
         <path
           d="M28 56C43.464 56 56 43.464 56 28C56 12.536 43.464 0 28 0C12.536 0 0 12.536 0 28C0 43.464 12.536 56 28 56Z"
@@ -42,5 +40,7 @@ export const routes: Route[] = [
         />
       </svg>
     ),
+    path: '/ton-connect',
+    title: 'TON Connect',
   },
 ];

@@ -1,11 +1,19 @@
 import { classNames, isRecord } from '@/css/classnames.js';
 
-export interface BlockFn {
-  (...mods: any): string;
-}
+export type BlockFn = (...mods: any) => string;
 
-export interface ElemFn {
-  (elem: string, ...mods: any): string;
+export type ElemFn = (elem: string, ...mods: any) => string;
+
+/**
+ * @returns A tuple, containing two functions. The first one generates classnames list for the
+ * block, the second one generates classnames for its elements.
+ * @param block - BEM block name.
+ */
+export function bem(block: string): [BlockFn, ElemFn] {
+  return [
+    (...mods) => computeClassnames(block, mods),
+    (elem, ...mods) => computeClassnames(`${block}__${elem}`, mods),
+  ];
 }
 
 /**
@@ -33,16 +41,4 @@ function applyMods(element: string, mod: any): string {
  */
 function computeClassnames(element: string, ...mods: any): string {
   return classNames(element, applyMods(element, mods));
-}
-
-/**
- * @returns A tuple, containing two functions. The first one generates classnames list for the
- * block, the second one generates classnames for its elements.
- * @param block - BEM block name.
- */
-export function bem(block: string): [BlockFn, ElemFn] {
-  return [
-    (...mods) => computeClassnames(block, mods),
-    (elem, ...mods) => computeClassnames(`${block}__${elem}`, mods),
-  ];
 }

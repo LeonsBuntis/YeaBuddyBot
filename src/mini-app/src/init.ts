@@ -1,17 +1,17 @@
 import {
-  setDebug,
-  mountBackButton,
-  restoreInitData,
-  init as initSDK,
   bindThemeParamsCssVars,
-  mountViewport,
   bindViewportCssVars,
+  emitEvent,
+  init as initSDK,
+  miniApp,
   mockTelegramEnv,
+  mountBackButton,
+  mountViewport,
+  restoreInitData,
+  retrieveLaunchParams,
+  setDebug,
   type ThemeParams,
   themeParamsState,
-  retrieveLaunchParams,
-  emitEvent,
-  miniApp,
 } from '@telegram-apps/sdk-react';
 
 /**
@@ -47,11 +47,11 @@ export async function init(options: {
             firstThemeSent = true;
             tp ||= retrieveLaunchParams().tgWebAppThemeParams;
           }
-          return emitEvent('theme_changed', { theme_params: tp });
+          emitEvent('theme_changed', { theme_params: tp }); return;
         }
 
         if (event[0] === 'web_app_request_safe_area') {
-          return emitEvent('safe_area_changed', { left: 0, top: 0, right: 0, bottom: 0 });
+          emitEvent('safe_area_changed', { bottom: 0, left: 0, right: 0, top: 0 }); return;
         }
 
         next();

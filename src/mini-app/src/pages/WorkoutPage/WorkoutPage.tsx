@@ -1,32 +1,33 @@
-import { Button, Input, Headline } from '@telegram-apps/telegram-ui';
-import { useRawInitData } from '@telegram-apps/sdk-react';
-import { cloudStorage } from '@telegram-apps/sdk';
 import type { FC } from 'react';
-import { useState, useEffect } from 'react';
+
+import { cloudStorage } from '@telegram-apps/sdk';
+import { useRawInitData } from '@telegram-apps/sdk-react';
+import { Button, Headline, Input } from '@telegram-apps/telegram-ui';
+import { useEffect, useState } from 'react';
 
 import { Page } from '@/components/Page.tsx';
-
-interface Set {
-  weight: number;
-  reps: number;
-}
 
 interface Exercise {
   name: string;
   sets: Set[];
 }
 
+interface Set {
+  reps: number;
+  weight: number;
+}
+
 interface WorkoutSession {
-  userId: number;
   exercises: Exercise[];
   startTime: string;
+  userId: number;
 }
 
 export const WorkoutPage: FC = () => {
   const rawInitData = useRawInitData();
   
   // Parse user ID from raw init data
-  const getUserIdFromInitData = (): number | null => {
+  const getUserIdFromInitData = (): null | number => {
     if (!rawInitData) return null;
     try {
       const params = new URLSearchParams(rawInitData);
@@ -43,12 +44,12 @@ export const WorkoutPage: FC = () => {
 
   const userId = getUserIdFromInitData();
   
-  const [session, setSession] = useState<WorkoutSession | null>(null);
+  const [session, setSession] = useState<null | WorkoutSession>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<null | string>(null);
   const [showAddExercise, setShowAddExercise] = useState(false);
   const [newExerciseName, setNewExerciseName] = useState('');
-  const [showAddSet, setShowAddSet] = useState<number | null>(null);
+  const [showAddSet, setShowAddSet] = useState<null | number>(null);
   const [newWeight, setNewWeight] = useState('');
   const [newReps, setNewReps] = useState('');
 
@@ -70,9 +71,9 @@ export const WorkoutPage: FC = () => {
         } else {
           // Create new workout session if none exists
           const newSession: WorkoutSession = {
-            userId,
             exercises: [],
-            startTime: new Date().toISOString()
+            startTime: new Date().toISOString(),
+            userId
           };
           if (cloudStorage.setItem.isAvailable()) {
             await cloudStorage.setItem('current_workout_session', JSON.stringify(newSession));
@@ -82,9 +83,9 @@ export const WorkoutPage: FC = () => {
       } else {
         // Fallback to creating a session in memory if CloudStorage is not available
         const newSession: WorkoutSession = {
-          userId,
           exercises: [],
-          startTime: new Date().toISOString()
+          startTime: new Date().toISOString(),
+          userId
         };
         setSession(newSession);
       }
@@ -127,8 +128,8 @@ export const WorkoutPage: FC = () => {
       const updatedSession = { ...session };
       if (updatedSession.exercises[exerciseIndex]) {
         updatedSession.exercises[exerciseIndex].sets.push({
-          weight: parseFloat(newWeight),
-          reps: parseInt(newReps)
+          reps: parseInt(newReps),
+          weight: parseFloat(newWeight)
         });
 
         if (cloudStorage.isSupported() && cloudStorage.setItem.isAvailable()) {
@@ -154,8 +155,8 @@ export const WorkoutPage: FC = () => {
       // Prepare the completed workout data
       const completedWorkout = {
         ...session,
-        endTime: new Date().toISOString(),
-        completed: true
+        completed: true,
+        endTime: new Date().toISOString()
       };
 
       // Send data to bot using Telegram Web App API
@@ -229,12 +230,12 @@ export const WorkoutPage: FC = () => {
     const date = new Date(dateString);
     return date.toLocaleTimeString('en-US', { 
       hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false 
+      hour12: false,
+      minute: '2-digit' 
     });
   };
 
-  const getPreviousSet = (exercise: Exercise, setIndex: number): Set | null => {
+  const getPreviousSet = (exercise: Exercise, setIndex: number): null | Set => {
     if (setIndex > 0) {
       return exercise.sets[setIndex - 1] || null;
     }
@@ -269,9 +270,9 @@ export const WorkoutPage: FC = () => {
       <div style={{ padding: '16px' }}>
         {/* Header */}
         <div style={{ 
+          alignItems: 'center', 
           display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
+          justifyContent: 'space-between',
           marginBottom: '20px'
         }}>
           <div>
@@ -281,9 +282,9 @@ export const WorkoutPage: FC = () => {
             </div>
           </div>
           <Button 
-            size="s" 
-            mode="filled"
+            mode="filled" 
             onClick={finishWorkout}
+            size="s"
             style={{ backgroundColor: '#34C759' }}
           >
             Finish
@@ -295,35 +296,35 @@ export const WorkoutPage: FC = () => {
           <div key={exerciseIndex} style={{ marginBottom: '24px' }}>
             {/* Exercise Header */}
             <div style={{ 
+              alignItems: 'center', 
               display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
+              justifyContent: 'space-between',
               marginBottom: '8px'
             }}>
               <h3 style={{ 
                 color: 'var(--tg-theme-link-color)', 
-                margin: 0,
                 fontSize: '16px',
-                fontWeight: '600'
+                fontWeight: '600',
+                margin: 0
               }}>
                 {exercise.name}
               </h3>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <Button size="s" mode="plain">📊</Button>
-                <Button size="s" mode="plain">⋯</Button>
+                <Button mode="plain" size="s">📊</Button>
+                <Button mode="plain" size="s">⋯</Button>
               </div>
             </div>
 
             {/* Watch back rounding warning */}
             <div style={{
-              backgroundColor: 'rgba(255, 204, 0, 0.15)',
-              padding: '8px 12px',
-              borderRadius: '8px',
-              marginBottom: '12px',
-              fontSize: '14px',
-              display: 'flex',
               alignItems: 'center',
-              gap: '8px'
+              backgroundColor: 'rgba(255, 204, 0, 0.15)',
+              borderRadius: '8px',
+              display: 'flex',
+              fontSize: '14px',
+              gap: '8px',
+              marginBottom: '12px',
+              padding: '8px 12px'
             }}>
               <span style={{ fontSize: '16px' }}>⚠️</span>
               Watch back rounding
@@ -331,14 +332,14 @@ export const WorkoutPage: FC = () => {
 
             {/* Sets Table Header */}
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: '40px 80px 60px 60px 40px',
-              gap: '8px',
-              padding: '8px 0',
               borderBottom: '1px solid var(--tg-theme-separator-color)',
+              color: 'var(--tg-theme-hint-color)',
+              display: 'grid',
               fontSize: '14px',
               fontWeight: '600',
-              color: 'var(--tg-theme-hint-color)'
+              gap: '8px',
+              gridTemplateColumns: '40px 80px 60px 60px 40px',
+              padding: '8px 0'
             }}>
               <div>Set</div>
               <div>Previous</div>
@@ -352,34 +353,34 @@ export const WorkoutPage: FC = () => {
               const previousSet = getPreviousSet(exercise, setIndex);
               return (
                 <div key={setIndex} style={{
-                  display: 'grid',
-                  gridTemplateColumns: '40px 80px 60px 60px 40px',
-                  gap: '8px',
-                  padding: '12px 0',
+                  alignItems: 'center',
                   borderBottom: setIndex < exercise.sets.length - 1 ? '1px solid var(--tg-theme-separator-color)' : 'none',
-                  alignItems: 'center'
+                  display: 'grid',
+                  gap: '8px',
+                  gridTemplateColumns: '40px 80px 60px 60px 40px',
+                  padding: '12px 0'
                 }}>
                   <div style={{ fontWeight: '600' }}>
                     {setIndex === 0 ? 'W' : (setIndex).toString()}
                   </div>
                   <div style={{ 
-                    fontSize: '12px', 
-                    color: 'var(--tg-theme-hint-color)' 
+                    color: 'var(--tg-theme-hint-color)', 
+                    fontSize: '12px' 
                   }}>
                     {previousSet ? `${previousSet.weight} kg x ${previousSet.reps}` : '-'}
                   </div>
                   <div style={{ fontWeight: '600' }}>{set.weight}</div>
                   <div style={{ fontWeight: '600' }}>{set.reps}</div>
                   <div style={{
-                    width: '24px',
-                    height: '24px',
-                    borderRadius: '50%',
-                    backgroundColor: '#34C759',
-                    display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center',
+                    backgroundColor: '#34C759',
+                    borderRadius: '50%',
                     color: 'white',
-                    fontSize: '14px'
+                    display: 'flex',
+                    fontSize: '14px',
+                    height: '24px',
+                    justifyContent: 'center',
+                    width: '24px'
                   }}>
                     ✓
                   </div>
@@ -390,43 +391,43 @@ export const WorkoutPage: FC = () => {
             {/* Add Set Form */}
             {showAddSet === exerciseIndex ? (
               <div style={{ 
-                padding: '16px', 
-                backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+                backgroundColor: 'var(--tg-theme-secondary-bg-color)', 
                 borderRadius: '8px',
-                marginTop: '8px'
+                marginTop: '8px',
+                padding: '16px'
               }}>
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
                   <Input
                     header="Weight (kg)"
+                    onChange={(e) => { setNewWeight(e.target.value); }}
                     placeholder="0"
-                    value={newWeight}
-                    onChange={(e) => setNewWeight(e.target.value)}
-                    type="number"
                     style={{ flex: 1 }}
+                    type="number"
+                    value={newWeight}
                   />
                   <Input
                     header="Reps"
+                    onChange={(e) => { setNewReps(e.target.value); }}
                     placeholder="0"
-                    value={newReps}
-                    onChange={(e) => setNewReps(e.target.value)}
-                    type="number"
                     style={{ flex: 1 }}
+                    type="number"
+                    value={newReps}
                   />
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <Button 
-                    size="s" 
+                    disabled={!newWeight || !newReps} 
                     mode="filled" 
                     onClick={() => addSet(exerciseIndex)}
-                    disabled={!newWeight || !newReps}
+                    size="s"
                     style={{ flex: 1 }}
                   >
                     Add Set
                   </Button>
                   <Button 
-                    size="s" 
                     mode="outline" 
-                    onClick={() => setShowAddSet(null)}
+                    onClick={() => { setShowAddSet(null); }} 
+                    size="s"
                     style={{ flex: 1 }}
                   >
                     Cancel
@@ -435,13 +436,13 @@ export const WorkoutPage: FC = () => {
               </div>
             ) : (
               <Button
-                size="s"
                 mode="plain"
-                onClick={() => setShowAddSet(exerciseIndex)}
+                onClick={() => { setShowAddSet(exerciseIndex); }}
+                size="s"
                 style={{ 
-                  marginTop: '8px',
                   color: 'var(--tg-theme-link-color)',
-                  fontSize: '14px'
+                  fontSize: '14px',
+                  marginTop: '8px'
                 }}
               >
                 + Add Set
@@ -453,32 +454,32 @@ export const WorkoutPage: FC = () => {
         {/* Add Exercise Form */}
         {showAddExercise ? (
           <div style={{ 
-            padding: '16px', 
-            backgroundColor: 'var(--tg-theme-secondary-bg-color)',
+            backgroundColor: 'var(--tg-theme-secondary-bg-color)', 
             borderRadius: '8px',
-            marginBottom: '16px'
+            marginBottom: '16px',
+            padding: '16px'
           }}>
             <Input
               header="Exercise Name"
+              onChange={(e) => { setNewExerciseName(e.target.value); }}
               placeholder="Enter exercise name"
-              value={newExerciseName}
-              onChange={(e) => setNewExerciseName(e.target.value)}
               style={{ marginBottom: '12px' }}
+              value={newExerciseName}
             />
             <div style={{ display: 'flex', gap: '8px' }}>
               <Button 
-                size="s" 
+                disabled={!newExerciseName.trim()} 
                 mode="filled" 
                 onClick={addExercise}
-                disabled={!newExerciseName.trim()}
+                size="s"
                 style={{ flex: 1 }}
               >
                 Add Exercise
               </Button>
               <Button 
-                size="s" 
                 mode="outline" 
-                onClick={() => setShowAddExercise(false)}
+                onClick={() => { setShowAddExercise(false); }} 
+                size="s"
                 style={{ flex: 1 }}
               >
                 Cancel
@@ -487,13 +488,13 @@ export const WorkoutPage: FC = () => {
           </div>
         ) : (
           <Button
-            size="m"
             mode="filled"
-            onClick={() => setShowAddExercise(true)}
+            onClick={() => { setShowAddExercise(true); }}
+            size="m"
             style={{ 
-              width: '100%',
+              backgroundColor: 'var(--tg-theme-link-color)',
               marginBottom: '16px',
-              backgroundColor: 'var(--tg-theme-link-color)'
+              width: '100%'
             }}
           >
             Add Exercises
@@ -502,13 +503,13 @@ export const WorkoutPage: FC = () => {
 
         {/* Cancel Workout Button */}
         <Button
-          size="m"
           mode="outline"
           onClick={cancelWorkout}
+          size="m"
           style={{ 
-            width: '100%',
+            borderColor: '#FF3B30',
             color: '#FF3B30',
-            borderColor: '#FF3B30'
+            width: '100%'
           }}
         >
           Cancel Workout

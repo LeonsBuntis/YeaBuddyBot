@@ -1,8 +1,9 @@
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
+
 import { YeaBuddyBot } from "./bot/YeaBuddyBot.js";
-import { telegramBotToken, webhookUrl, port } from "./config.js";
+import { port, telegramBotToken, webhookUrl } from "./config.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,7 +34,7 @@ if (webhookUrl) {
 
     app.use(await bot.runWeb(webhookUrl));
 
-    app.listen(port, () => console.log(`Bot listening on port ${port} with webhook: ${webhookUrl}`));
+    app.listen(port, () => { console.log(`Bot listening on port ${port} with webhook: ${webhookUrl}`); });
 } else {
     console.log("Starting bot in polling mode...");
     bot.run().catch(console.error);

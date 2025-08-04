@@ -1,4 +1,5 @@
 import { Mistral } from "@mistralai/mistralai";
+
 import { mistralApiKey } from "../../config.js";
 
 // Initialize Mistral client
@@ -6,8 +7,8 @@ const client = new Mistral({ apiKey: mistralApiKey });
 
 // Interface for chat history
 interface ChatMessage {
-    role: "user" | "assistant";
     content: string;
+    role: "assistant" | "user";
 }
 
 // Store chat histories for different users
@@ -18,7 +19,7 @@ export async function handleMessage(userId: number, message: string): Promise<st
     let history = chatHistories.get(userId) || [];
 
     // Add user message to history
-    history.push({ role: "user", content: message });
+    history.push({ content: message, role: "user" });
 
     const preprompt =
         "Act as a gymbro buddy. Only answer gym related prompts, if you are asked about something else, say 'I am a gymbro, I only talk about gym stuff'. ";
@@ -29,8 +30,8 @@ export async function handleMessage(userId: number, message: string): Promise<st
         // Get response from Mistral
         const response = await client.chat.complete({
             messages: history.map((msg) => ({
-                role: msg.role,
                 content: preprompt + msg.content + postprompt,
+                role: msg.role,
             })),
             model: "mistral-small-latest",
             safePrompt: true,
@@ -39,7 +40,7 @@ export async function handleMessage(userId: number, message: string): Promise<st
         const botResponse = response.choices[0]?.message?.content?.toString() || "Sorry, I could not generate a response.";
 
         // Add bot response to history
-        history.push({ role: "assistant", content: botResponse });
+        history.push({ content: botResponse, role: "assistant" });
 
         // Keep only last 10 messages to manage context window
         if (history.length > 10) {

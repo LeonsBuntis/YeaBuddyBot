@@ -1,4 +1,4 @@
-import { mockTelegramEnv, isTMA, emitEvent } from '@telegram-apps/sdk-react';
+import { emitEvent, isTMA, mockTelegramEnv } from '@telegram-apps/sdk-react';
 
 // It is important, to mock the environment only for development purposes. When building the
 // application, import.meta.env.DEV will become false, and the code inside will be tree-shaken,
@@ -20,29 +20,9 @@ if (import.meta.env.DEV) {
       subtitle_text_color: '#708499',
       text_color: '#f5f5f5',
     } as const;
-    const noInsets = { left: 0, top: 0, bottom: 0, right: 0 } as const;
+    const noInsets = { bottom: 0, left: 0, right: 0, top: 0 } as const;
 
     mockTelegramEnv({
-      onEvent(e) {
-        // Here you can write your own handlers for all known Telegram MIni Apps methods.
-        if (e[0] === 'web_app_request_theme') {
-          return emitEvent('theme_changed', { theme_params: themeParams });
-        }
-        if (e[0] === 'web_app_request_viewport') {
-          return emitEvent('viewport_changed', {
-            height: window.innerHeight,
-            width: window.innerWidth,
-            is_expanded: true,
-            is_state_stable: true,
-          });
-        }
-        if (e[0] === 'web_app_request_content_safe_area') {
-          return emitEvent('content_safe_area_changed', noInsets);
-        }
-        if (e[0] === 'web_app_request_safe_area') {
-          return emitEvent('safe_area_changed', noInsets);
-        }
-      },
       launchParams: new URLSearchParams([
         // Discover more launch parameters:
         // https://docs.telegram-mini-apps.com/platform/launch-parameters#parameters-list
@@ -64,11 +44,31 @@ if (import.meta.env.DEV) {
           ['auth_date', (new Date().getTime() / 1000 | 0).toString()],
           ['hash', 'some-hash'],
           ['signature', 'some-signature'],
-          ['user', JSON.stringify({ id: 1, first_name: 'Vladislav' })],
+          ['user', JSON.stringify({ first_name: 'Vladislav', id: 1 })],
         ]).toString()],
         ['tgWebAppVersion', '8.4'],
         ['tgWebAppPlatform', 'tdesktop'],
       ]),
+      onEvent(e) {
+        // Here you can write your own handlers for all known Telegram MIni Apps methods.
+        if (e[0] === 'web_app_request_theme') {
+          emitEvent('theme_changed', { theme_params: themeParams }); return;
+        }
+        if (e[0] === 'web_app_request_viewport') {
+          emitEvent('viewport_changed', {
+            height: window.innerHeight,
+            is_expanded: true,
+            is_state_stable: true,
+            width: window.innerWidth,
+          }); return;
+        }
+        if (e[0] === 'web_app_request_content_safe_area') {
+          emitEvent('content_safe_area_changed', noInsets); return;
+        }
+        if (e[0] === 'web_app_request_safe_area') {
+          emitEvent('safe_area_changed', noInsets); return;
+        }
+      },
     });
 
     console.info(

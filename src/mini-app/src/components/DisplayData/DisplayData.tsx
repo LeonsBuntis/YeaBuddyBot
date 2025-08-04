@@ -1,14 +1,21 @@
-import { isRGB } from '@telegram-apps/sdk-react';
-import { Cell, Checkbox, Section } from '@telegram-apps/telegram-ui';
 import type { FC, ReactNode } from 'react';
 
-import { RGB } from '@/components/RGB/RGB.tsx';
+import { isRGB } from '@telegram-apps/sdk-react';
+import { Cell, Checkbox, Section } from '@telegram-apps/telegram-ui';
+
 import { Link } from '@/components/Link/Link.tsx';
+import { RGB } from '@/components/RGB/RGB.tsx';
 import { bem } from '@/css/bem.ts';
 
 import './DisplayData.css';
 
 const [, e] = bem('display-data');
+
+export interface DisplayDataProps {
+  footer?: ReactNode;
+  header?: ReactNode;
+  rows: DisplayDataRow[];
+}
 
 export type DisplayDataRow =
   & { title: string }
@@ -16,12 +23,6 @@ export type DisplayDataRow =
   | { type: 'link'; value?: string }
   | { value: ReactNode }
   )
-
-export interface DisplayDataProps {
-  header?: ReactNode;
-  footer?: ReactNode;
-  rows: DisplayDataRow[];
-}
 
 export const DisplayData: FC<DisplayDataProps> = ({ header, rows }) => (
   <Section header={header}>
@@ -47,10 +48,10 @@ export const DisplayData: FC<DisplayDataProps> = ({ header, rows }) => (
       return (
         <Cell
           className={e('line')}
-          subhead={item.title}
-          readOnly
-          multiline={true}
           key={idx}
+          multiline={true}
+          readOnly
+          subhead={item.title}
         >
           <span className={e('line-value')}>
             {valueNode}

@@ -1,8 +1,8 @@
-import { useNavigate } from 'react-router-dom';
 import { hideBackButton, onBackButtonClick, showBackButton } from '@telegram-apps/sdk-react';
 import { type PropsWithChildren, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
-export function Page({ children, back = true }: PropsWithChildren<{
+export function Page({ back = true, children }: PropsWithChildren<{
   /**
    * True if it is allowed to go back from this page.
    */

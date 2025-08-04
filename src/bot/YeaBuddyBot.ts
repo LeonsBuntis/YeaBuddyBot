@@ -3,24 +3,42 @@ import { Scenes, session } from "telegraf";
 import { message } from "telegraf/filters";
 
 import { appVersion, webappUrl } from "../config.js";
-import { Repository, Workout, Exercise, Set } from "../infrastructure/Repository.js";
+import { Exercise, Repository, Set, Workout } from "../infrastructure/Repository.js";
 import { createWorkoutScenes } from "./scenes/WorkoutScenes.js";
-import { TrainingManager, TrainingSession } from "./training/TrainingSession.js";
+import { TrainingManager } from "./training/TrainingSession.js";
 
 interface BotContext extends Context {
     scene: Scenes.SceneContextScene<Scenes.SceneContext>;
     session: Scenes.SceneSession;
 }
 
+interface WorkoutExercise {
+    name: string;
+    sets: WorkoutSet[];
+}
+
+interface WorkoutSessionData {
+    completed?: boolean;
+    endTime?: string;
+    exercises: WorkoutExercise[];
+    startTime: string;
+    userId: number;
+}
+
+interface WorkoutSet {
+    reps: number;
+    weight: number;
+}
+
 export class YeaBuddyBot {
     private bot: Telegraf<BotContext>;
-    private trainingManager: TrainingManager;
     private repository: Repository;
+    private trainingManager: TrainingManager;
 
     constructor(token: string) {
         this.bot = new Telegraf<BotContext>(token);
-        this.trainingManager = new TrainingManager();
         this.repository = new Repository();
+        this.trainingManager = new TrainingManager();
 
         // Set up session and scene middleware
         this.bot.use(session());
@@ -29,6 +47,130 @@ export class YeaBuddyBot {
 
         this.setupHandlers();
         void this.setupCommands();
+    }
+
+    public async run(): Promise<void> {
+        try {
+            console.log("Starting the bot...");
+
+            // Launch the bot
+            await this.bot.launch();
+
+            // Enable graceful stop
+            process.once("SIGINT", () => { this.bot.stop("SIGINT"); });
+            process.once("SIGTERM", () => { this.bot.stop("SIGTERM"); });
+
+            console.log("Bot is running!");
+        } catch (error) {
+            console.error("Error starting the bot:", error);
+            throw error;
+        }
+    }
+
+    public async runWeb(webhookUrl: string) {
+        process.once("SIGINT", () => { this.bot.stop("SIGINT"); });
+        process.once("SIGTERM", () => { this.bot.stop("SIGTERM"); });
+
+        return await this.bot.createWebhook({ domain: webhookUrl });
+    }
+
+    private handleError(err: unknown, ctx: Context): void {
+        console.error(`Error for ${ctx.updateType}:`, err);
+    }
+
+    private async handleFinishCommand(ctx: Context, userId: number): Promise<void> {
+        const session = this.trainingManager.finishSession(userId);
+        if (!session) {
+            await ctx.reply("No active training session! Start one with /pumpit first! 💪");
+            return;
+        }
+
+        const keyboard = Markup.keyboard([[Markup.button.text("YEAH BUDDY! 🏋️‍♂️")]])
+            .oneTime()
+            .resize();
+
+        const summary = this.trainingManager.formatSessionSummary(session);
+        await ctx.reply(summary, keyboard);
+    }
+
+    private async handleTextMessage(ctx: Context): Promise<void> {
+        if (!ctx.message || !("text" in ctx.message)) {
+            return;
+        }
+
+        const message = ctx.message.text;
+        const userId = ctx.from?.id;
+
+        if (!userId) {
+            return;
+        }
+
+        console.log("%s: message received: %s", userId, message);
+
+        // For all other messages, use Mistral AI
+        // try {
+        //     console.log('lets try ai');
+        //     await ctx.sendChatAction('typing');
+        //     const response = await handleMessage(userId, message);
+        //     await ctx.reply(response);
+        // } catch (error) {
+        //     console.log('Error handling message:', error);
+        //     await ctx.reply('Oh shit I\'m sorry! An error ocurred try again.');
+        // }
+
+        await ctx.reply("Mistral is offline. I am dumb now, I can only record workouts...");
+    }
+
+    private async handleWebAppData(ctx: Context): Promise<void> {
+        if (!ctx.message || !("web_app_data" in ctx.message)) {
+            return;
+        }
+
+        const userId = ctx.from?.id;
+        if (!userId) {
+            return;
+        }
+
+        try {
+            const webAppData = ctx.message.web_app_data;
+            const workoutData: WorkoutSessionData = JSON.parse(webAppData.data);
+            
+            console.log(`Received workout data from user ${String(userId)}:`, workoutData);
+
+            // Convert the mini-app workout format to Repository format
+            const workout = new Workout(
+                userId,
+                new Date(workoutData.startTime),
+                workoutData.exercises.map((exercise: WorkoutExercise) => new Exercise(
+                    userId.toString(),
+                    exercise.name,
+                    exercise.sets.map((set: WorkoutSet) => new Set(set.weight, set.reps))
+                ))
+            );
+
+            // Set the end time if provided
+            if (workoutData.endTime) {
+                workout.endTime = new Date(workoutData.endTime);
+            }
+
+            // Save workout to Cosmos DB
+            await this.repository.saveWorkout(workout);
+
+            // Finish the active training session if it exists
+            this.trainingManager.finishSession(userId);
+
+            // Send confirmation message
+            await ctx.reply(
+                "YEAH BUDDY! 🏋️‍♂️ Workout saved successfully!\n\n" +
+                `💪 ${String(workout.excercises.length)} exercises completed\n` +
+                `🔥 ${String(workout.excercises.reduce((total, ex) => total + ex.sets.length, 0))} total sets\n\n` +
+                "Keep pushing those limits! LIGHT WEIGHT BABY! 💪"
+            );
+
+        } catch (error) {
+            console.error('Error handling web app data:', error);
+            await ctx.reply("Failed to save workout data. Please try again! 💪");
+        }
     }
 
     private async setupCommands(): Promise<void> {
@@ -106,22 +248,16 @@ export class YeaBuddyBot {
 
         // Handle inline button actions
         this.bot.action("addExercise", async (ctx) => {
-            const userId = ctx.from.id;
-
             await ctx.answerCbQuery();
             await ctx.scene.enter("addExercise");
         });
 
         this.bot.action("finish", async (ctx) => {
-            const userId = ctx.from.id;
-
             await ctx.answerCbQuery();
-            await this.handleFinishCommand(ctx, userId);
+            await this.handleFinishCommand(ctx, ctx.from.id);
         });
 
         this.bot.action("addSet", async (ctx) => {
-            const userId = ctx.from.id;
-
             await ctx.answerCbQuery();
             await ctx.scene.enter("addSet");
         });
@@ -134,130 +270,6 @@ export class YeaBuddyBot {
 
         // Error handling
         this.bot.catch(this.handleError.bind(this));
-    }
-
-    private async handleTextMessage(ctx: Context): Promise<void> {
-        if (!ctx.message || !("text" in ctx.message)) {
-            return;
-        }
-
-        const message = ctx.message.text;
-        const userId = ctx.from?.id;
-
-        if (!userId) {
-            return;
-        }
-
-        console.log("%s: message received: %s", userId, message);
-
-        // For all other messages, use Mistral AI
-        // try {
-        //     console.log('lets try ai');
-        //     await ctx.sendChatAction('typing');
-        //     const response = await handleMessage(userId, message);
-        //     await ctx.reply(response);
-        // } catch (error) {
-        //     console.log('Error handling message:', error);
-        //     await ctx.reply('Oh shit I\'m sorry! An error ocurred try again.');
-        // }
-
-        await ctx.reply("Mistral is offline. I am dumb now, I can only record workouts...");
-    }
-
-    private async handleWebAppData(ctx: Context): Promise<void> {
-        if (!ctx.message || !("web_app_data" in ctx.message)) {
-            return;
-        }
-
-        const userId = ctx.from?.id;
-        if (!userId) {
-            return;
-        }
-
-        try {
-            const webAppData = ctx.message.web_app_data;
-            const workoutData = JSON.parse(webAppData.data);
-            
-            console.log(`Received workout data from user ${userId}:`, workoutData);
-
-            // Convert the mini-app workout format to Repository format
-            const workout = new Workout(
-                userId,
-                new Date(workoutData.startTime),
-                workoutData.exercises.map((exercise: any) => new Exercise(
-                    userId.toString(),
-                    exercise.name,
-                    exercise.sets.map((set: any) => new Set(set.weight, set.reps))
-                ))
-            );
-
-            // Set the end time if provided
-            if (workoutData.endTime) {
-                workout.endTime = new Date(workoutData.endTime);
-            }
-
-            // Save workout to Cosmos DB
-            await this.repository.saveWorkout(workout);
-
-            // Finish the active training session if it exists
-            this.trainingManager.finishSession(userId);
-
-            // Send confirmation message
-            await ctx.reply(
-                "YEAH BUDDY! 🏋️‍♂️ Workout saved successfully!\n\n" +
-                `💪 ${workout.excercises.length} exercises completed\n` +
-                `🔥 ${workout.excercises.reduce((total, ex) => total + ex.sets.length, 0)} total sets\n\n` +
-                "Keep pushing those limits! LIGHT WEIGHT BABY! 💪"
-            );
-
-        } catch (error) {
-            console.error('Error handling web app data:', error);
-            await ctx.reply("Failed to save workout data. Please try again! 💪");
-        }
-    }
-
-    private async handleFinishCommand(ctx: Context, userId: number): Promise<void> {
-        const session = this.trainingManager.finishSession(userId);
-        if (!session) {
-            await ctx.reply("No active training session! Start one with /pumpit first! 💪");
-            return;
-        }
-
-        const keyboard = Markup.keyboard([[Markup.button.text("YEAH BUDDY! 🏋️‍♂️")]])
-            .oneTime()
-            .resize();
-
-        const summary = this.trainingManager.formatSessionSummary(session);
-        await ctx.reply(summary, keyboard);
-    }
-
-    private handleError(err: unknown, ctx: Context): void {
-        console.error(`Error for ${ctx.updateType}:`, err);
-    }
-
-    public async run(): Promise<void> {
-        try {
-            console.log("Starting the bot...");
-
-            // Launch the bot
-            await this.bot.launch();
-
-            // Enable graceful stop
-            process.once("SIGINT", () => this.bot.stop("SIGINT"));
-            process.once("SIGTERM", () => this.bot.stop("SIGTERM"));
-
-            console.log("Bot is running!");
-        } catch (error) {
-            console.error("Error starting the bot:", error);
-            throw error;
-        }
-    }
-
-    public async runWeb(webhookUrl: string) {
-        process.once("SIGINT", () => this.bot.stop("SIGINT"));
-        process.once("SIGTERM", () => this.bot.stop("SIGTERM"));
-
-        return await this.bot.createWebhook({ domain: webhookUrl });
     }
 
 
