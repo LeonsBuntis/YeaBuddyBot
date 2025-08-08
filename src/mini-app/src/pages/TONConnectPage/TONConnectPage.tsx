@@ -11,10 +11,12 @@ import {
   Title,
 } from '@telegram-apps/telegram-ui';
 import type { FC } from 'react';
+import { useEffect } from 'react';
 
 import { DisplayData } from '@/components/DisplayData/DisplayData.tsx';
 import { Page } from '@/components/Page.tsx';
 import { bem } from '@/css/bem.ts';
+import { useToast } from '@/components/Toast';
 
 import './TONConnectPage.css';
 
@@ -22,6 +24,23 @@ const [, e] = bem('ton-connect-page');
 
 export const TONConnectPage: FC = () => {
   const wallet = useTonWallet();
+  const { success, error, info } = useToast();
+
+  useEffect(() => {
+    if (wallet) {
+      success('🎉 Wallet connected successfully!');
+    }
+  }, [wallet, success]);
+
+  const handleWalletInfoClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (wallet && 'aboutUrl' in wallet) {
+      info('Opening wallet information...');
+      openLink(wallet.aboutUrl);
+    } else {
+      error('Unable to open wallet information');
+    }
+  };
 
   if (!wallet) {
     return (
@@ -66,10 +85,7 @@ export const TONConnectPage: FC = () => {
                 }
                 after={<Navigation>About wallet</Navigation>}
                 subtitle={wallet.appName}
-                onClick={(e) => {
-                  e.preventDefault();
-                  openLink(wallet.aboutUrl);
-                }}
+                onClick={handleWalletInfoClick}
               >
                 <Title level="3">{wallet.name}</Title>
               </Cell>
