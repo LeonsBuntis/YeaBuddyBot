@@ -1,25 +1,22 @@
-import { useMemo } from 'react';
-import { Navigate, Route, Routes, HashRouter } from 'react-router-dom';
-import { retrieveLaunchParams, useSignal, isMiniAppDark } from '@telegram-apps/sdk-react';
-import { AppRoot } from '@telegram-apps/telegram-ui';
-
-import { routes } from '@/navigation/routes.tsx';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { WorkoutSession } from './WorkoutSession';
+import { Home } from './Home';
 
 export function App() {
-  const lp = useMemo(() => retrieveLaunchParams(), []);
-  const isDark = useSignal(isMiniAppDark);
-
   return (
-    <AppRoot
-      appearance={isDark ? 'dark' : 'light'}
-      platform={['macos', 'ios'].includes(lp.tgWebAppPlatform) ? 'ios' : 'base'}
-    >
-      <HashRouter>
-        <Routes>
-          {routes.map((route) => <Route key={route.path} {...route} />)}
-          <Route path="*" element={<Navigate to="/"/>}/>
-        </Routes>
-      </HashRouter>
-    </AppRoot>
+    <Router>
+      <div className="app">
+        <header className="app-header">
+          <h1>💪 YeaBuddy Fitness Tracker</h1>
+          <p>YEAH BUDDY! Light weight baby!</p>
+        </header>
+        <main className="app-main">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/workout/:sessionId" element={<WorkoutSession />} />
+          </Routes>
+        </main>
+      </div>
+    </Router>
   );
 }

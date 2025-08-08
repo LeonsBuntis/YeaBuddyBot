@@ -5,9 +5,10 @@
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
-    "build": "tsc && copyfiles -u 1 src/mini-app/dist/* src/mini-app/dist/**/* dist",
+    "build": "cd src/mini-app && npm run build && cd ../.. && tsc && copyfiles -u 1 src/mini-app/dist/* src/mini-app/dist/**/* dist",
     "start": "node dist/index.js",
     "dev": "tsx --watch src/index.ts",
+    "dev:web": "cd src/mini-app && npm run dev",
     "type-check": "tsc --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
@@ -37,9 +38,7 @@
   "dependencies": {
     "@azure/cosmos": "^4.5.0",
     "@azure/identity": "^4.10.2",
-    "@mistralai/mistralai": "^1.7.4",
     "dotenv": "^17.2.0",
-    "express": "^5.1.0",
-    "telegraf": "^4.16.3"
+    "express": "^5.1.0"
   }
 }
