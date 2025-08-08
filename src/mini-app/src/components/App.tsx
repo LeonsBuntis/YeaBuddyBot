@@ -4,22 +4,27 @@ import { retrieveLaunchParams, useSignal, isMiniAppDark } from '@telegram-apps/s
 import { AppRoot } from '@telegram-apps/telegram-ui';
 
 import { routes } from '@/navigation/routes.tsx';
+import { ToastProvider, ToastContainer } from '@/components/Toast';
 
 export function App() {
   const lp = useMemo(() => retrieveLaunchParams(), []);
   const isDark = useSignal(isMiniAppDark);
 
   return (
-    <AppRoot
-      appearance={isDark ? 'dark' : 'light'}
-      platform={['macos', 'ios'].includes(lp.tgWebAppPlatform) ? 'ios' : 'base'}
-    >
-      <HashRouter>
-        <Routes>
-          {routes.map((route) => <Route key={route.path} {...route} />)}
-          <Route path="*" element={<Navigate to="/"/>}/>
-        </Routes>
-      </HashRouter>
-    </AppRoot>
+    <ToastProvider>
+      <AppRoot
+        appearance={isDark ? 'dark' : 'light'}
+        platform={['macos', 'ios'].includes(lp.tgWebAppPlatform) ? 'ios' : 'base'}
+        data-theme={isDark ? 'dark' : 'light'}
+      >
+        <HashRouter>
+          <Routes>
+            {routes.map((route) => <Route key={route.path} {...route} />)}
+            <Route path="*" element={<Navigate to="/"/>}/>
+          </Routes>
+        </HashRouter>
+        <ToastContainer />
+      </AppRoot>
+    </ToastProvider>
   );
 }
