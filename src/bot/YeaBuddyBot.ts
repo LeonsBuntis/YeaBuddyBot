@@ -57,8 +57,12 @@ export class YeaBuddyBot {
             await this.bot.launch();
 
             // Enable graceful stop
-            process.once("SIGINT", () => { this.bot.stop("SIGINT"); });
-            process.once("SIGTERM", () => { this.bot.stop("SIGTERM"); });
+            process.once("SIGINT", () => {
+                this.bot.stop("SIGINT");
+            });
+            process.once("SIGTERM", () => {
+                this.bot.stop("SIGTERM");
+            });
 
             console.log("Bot is running!");
         } catch (error) {
@@ -68,8 +72,12 @@ export class YeaBuddyBot {
     }
 
     public async runWeb(webhookUrl: string) {
-        process.once("SIGINT", () => { this.bot.stop("SIGINT"); });
-        process.once("SIGTERM", () => { this.bot.stop("SIGTERM"); });
+        process.once("SIGINT", () => {
+            this.bot.stop("SIGINT");
+        });
+        process.once("SIGTERM", () => {
+            this.bot.stop("SIGTERM");
+        });
 
         return await this.bot.createWebhook({ domain: webhookUrl });
     }
@@ -122,7 +130,7 @@ export class YeaBuddyBot {
     }
 
     private async handleWebAppData(ctx: Context): Promise<void> {
-        if (!ctx.message || !("web_app_data" in ctx.message)) {
+        if (!ctx.webAppData || !ctx.webAppData.data) {
             return;
         }
 
@@ -132,20 +140,22 @@ export class YeaBuddyBot {
         }
 
         try {
-            const webAppData = ctx.message.web_app_data;
-            const workoutData: WorkoutSessionData = JSON.parse(webAppData.data);
-            
+            const workoutData: WorkoutSessionData = ctx.webAppData.data.json<WorkoutSessionData>();
+
             console.log(`Received workout data from user ${String(userId)}:`, workoutData);
 
             // Convert the mini-app workout format to Repository format
             const workout = new Workout(
                 userId,
                 new Date(workoutData.startTime),
-                workoutData.exercises.map((exercise: WorkoutExercise) => new Exercise(
-                    userId.toString(),
-                    exercise.name,
-                    exercise.sets.map((set: WorkoutSet) => new Set(set.weight, set.reps))
-                ))
+                workoutData.exercises.map(
+                    (exercise: WorkoutExercise) =>
+                        new Exercise(
+                            userId.toString(),
+                            exercise.name,
+                            exercise.sets.map((set: WorkoutSet) => new Set(set.weight, set.reps)),
+                        ),
+                ),
             );
 
             // Set the end time if provided
@@ -162,13 +172,12 @@ export class YeaBuddyBot {
             // Send confirmation message
             await ctx.reply(
                 "YEAH BUDDY! 🏋️‍♂️ Workout saved successfully!\n\n" +
-                `💪 ${String(workout.excercises.length)} exercises completed\n` +
-                `🔥 ${String(workout.excercises.reduce((total, ex) => total + ex.sets.length, 0))} total sets\n\n` +
-                "Keep pushing those limits! LIGHT WEIGHT BABY! 💪"
+                    `💪 ${String(workout.excercises.length)} exercises completed\n` +
+                    `🔥 ${String(workout.excercises.reduce((total, ex) => total + ex.sets.length, 0))} total sets\n\n` +
+                    "Keep pushing those limits! LIGHT WEIGHT BABY! 💪",
             );
-
         } catch (error) {
-            console.error('Error handling web app data:', error);
+            console.error("Error handling web app data:", error);
             await ctx.reply("Failed to save workout data. Please try again! 💪");
         }
     }
@@ -213,7 +222,7 @@ export class YeaBuddyBot {
             }
 
             this.trainingManager.startSession(userId);
-            const keyboard = Markup.inlineKeyboard([[Markup.button.webApp("🏋️‍♂️ Open Workout Logger", `${webappUrl}#/workout`)]]);
+            const keyboard = Markup.keyboard([[Markup.button.webApp("🏋️‍♂️ Open Workout Logger", `${webappUrl}#/workout`)]]);
 
             await ctx.reply(
                 "YEAH BUDDY! 🏋️‍♂️ New workout session started!\n\n" +
@@ -263,7 +272,9 @@ export class YeaBuddyBot {
         });
 
         // Handle web app data (from mini-app sendData)
-        this.bot.on("web_app_data", this.handleWebAppData.bind(this));
+        // this.bot.on("web_app_data", this.handleWebAppData.bind(this));
+
+        this.bot.on(message("web_app_data"), this.handleWebAppData.bind(this));
 
         // Handle text messages
         this.bot.on(message("text"), this.handleTextMessage.bind(this));
@@ -271,6 +282,4 @@ export class YeaBuddyBot {
         // Error handling
         this.bot.catch(this.handleError.bind(this));
     }
-
-
 }
