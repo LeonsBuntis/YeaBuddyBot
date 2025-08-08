@@ -1,36 +1,15 @@
 import { PagedAsyncIterableIterator } from "@azure/core-paging";
-import { DefaultAzureCredential, TokenCredential } from "@azure/identity";
 import { Container, CosmosClient, Database, FeedResponse, ItemResponse, SqlQuerySpec } from "@azure/cosmos";
-import { cosmosConnectionString, cosmosDatabaseId, cosmosWorkoutsContainerId } from "../config.js";
+import { DefaultAzureCredential, TokenCredential } from "@azure/identity";
 
-export class Set {
-    constructor(
-        public weight: number,
-        public reps: number,
-    ) {}
-}
+import { cosmosConnectionString, cosmosDatabaseId, cosmosWorkoutsContainerId } from "../config.js";
 
 export class Exercise {
     constructor(
         public userId: string,
         public name: string,
-        public sets: Array<Set> = [],
+        public sets: Set[] = [],
     ) {}
-}
-
-export class Workout {
-    public partitionKey: number;
-    public id: string;
-    public endTime: Date = new Date();
-
-    constructor(
-        public userId: number,
-        public startTime: Date,
-        public excercises: Array<Exercise> = [],
-    ) {
-        this.partitionKey = userId;
-        this.id = Date.now().toString();
-    }
 }
 
 export class Repository {
@@ -45,9 +24,31 @@ export class Repository {
     }
 
     public async saveWorkout(workout: Workout): Promise<ItemResponse<any>> {
-        let response = await this.workoutsContainer.items.upsert(workout);
+        const response = await this.workoutsContainer.items.upsert(workout);
         console.log(`Workout saved with id: ${response.resource?.id}`);
 
         return response;
+    }
+}
+
+export class Set {
+    constructor(
+        public weight: number,
+        public reps: number,
+    ) {}
+}
+
+export class Workout {
+    public endTime: Date = new Date();
+    public id: string;
+    public partitionKey: number;
+
+    constructor(
+        public userId: number,
+        public startTime: Date,
+        public excercises: Exercise[] = [],
+    ) {
+        this.partitionKey = userId;
+        this.id = Date.now().toString();
     }
 }

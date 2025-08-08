@@ -2,16 +2,16 @@ import { Repository, Workout } from "../../infrastructure/Repository.js";
 
 export interface Exercise {
     name: string;
-    sets: Array<{
-        weight: number;
+    sets: {
         reps: number;
-    }>;
+        weight: number;
+    }[];
 }
 
 export interface TrainingSession {
-    userId: number;
     exercises: Exercise[];
     startTime: Date;
+    userId: number;
 }
 
 export class TrainingManager {
@@ -21,21 +21,6 @@ export class TrainingManager {
     constructor() {
         this.activeSessions = new Map();
         this.repo = new Repository();
-    }
-
-    public startSession(userId: number): boolean {
-        if (this.activeSessions.has(userId)) {
-            return false;
-        }
-
-        const newSession: TrainingSession = {
-            userId,
-            exercises: [],
-            startTime: new Date(),
-        };
-
-        this.activeSessions.set(userId, newSession);
-        return true;
     }
 
     public addExercise(userId: number, exerciseName: string): boolean {
@@ -63,11 +48,30 @@ export class TrainingManager {
             return null;
         }
 
-        currentExercise.sets.push({ weight, reps });
+        currentExercise.sets.push({ reps, weight });
         return currentExercise;
     }
 
-    public finishSession(userId: number): TrainingSession | null {
+    public addSetToExercise(userId: number, exerciseIndex: number, weight: number, reps: number): boolean {
+        const session = this.activeSessions.get(userId);
+        if (!session || exerciseIndex < 0 || exerciseIndex >= session.exercises.length) {
+            return false;
+        }
+
+        const exercise = session.exercises[exerciseIndex];
+        if (!exercise) {
+            return false;
+        }
+
+        exercise.sets.push({ reps, weight });
+        return true;
+    }
+
+    public cancelSession(userId: number): boolean {
+        return this.activeSessions.delete(userId);
+    }
+
+    public finishSession(userId: number): null | TrainingSession {
         const session = this.activeSessions.get(userId);
         if (!session) {
             return null;
@@ -78,12 +82,12 @@ export class TrainingManager {
             session.userId,
             session.startTime,
             session.exercises.map((ex) => ({
-                userId: String(session.userId),
                 name: ex.name,
                 sets: ex.sets.map((set) => ({
-                    weight: set.weight,
                     reps: set.reps,
+                    weight: set.weight,
                 })),
+                userId: String(session.userId),
             })),
         );
         this.repo.saveWorkout(workout).catch((err) => {
@@ -92,10 +96,6 @@ export class TrainingManager {
 
         this.activeSessions.delete(userId);
         return session;
-    }
-
-    public hasActiveSession(userId: number): boolean {
-        return this.activeSessions.has(userId);
     }
 
     public formatSessionSummary(session: TrainingSession): string {
@@ -124,5 +124,28 @@ export class TrainingManager {
         });
 
         return response;
+    }
+
+    public getActiveSession(userId: number): null | TrainingSession {
+        return this.activeSessions.get(userId) || null;
+    }
+
+    public hasActiveSession(userId: number): boolean {
+        return this.activeSessions.has(userId);
+    }
+
+    public startSession(userId: number): boolean {
+        if (this.activeSessions.has(userId)) {
+            return false;
+        }
+
+        const newSession: TrainingSession = {
+            exercises: [],
+            startTime: new Date(),
+            userId,
+        };
+
+        this.activeSessions.set(userId, newSession);
+        return true;
     }
 }

@@ -1,6 +1,6 @@
 import { openLink } from '@telegram-apps/sdk-react';
 import { type FC, type MouseEventHandler, useCallback } from 'react';
-import { Link as RouterLink, type LinkProps } from 'react-router-dom';
+import { type LinkProps, Link as RouterLink } from 'react-router-dom';
 
 import { classNames } from '@/css/classnames.ts';
 
@@ -21,7 +21,7 @@ export const Link: FC<LinkProps> = ({
     if (typeof to === 'string') {
       path = to;
     } else {
-      const { search = '', pathname = '', hash = '' } = to;
+      const { hash = '', pathname = '', search = '' } = to;
       path = `${pathname}?${search}#${hash}`;
     }
 
@@ -39,9 +39,9 @@ export const Link: FC<LinkProps> = ({
   return (
     <RouterLink
       {...rest}
-      to={to}
-      onClick={onClick}
       className={classNames(className, 'link')}
+      onClick={onClick}
+      to={to}
     />
   );
 };

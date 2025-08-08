@@ -1,5 +1,6 @@
+import type { FC } from 'react';
+
 import { openLink } from '@telegram-apps/sdk-react';
-import { TonConnectButton, useTonWallet } from '@tonconnect/ui-react';
 import {
   Avatar,
   Cell,
@@ -10,7 +11,7 @@ import {
   Text,
   Title,
 } from '@telegram-apps/telegram-ui';
-import type { FC } from 'react';
+import { TonConnectButton, useTonWallet } from '@tonconnect/ui-react';
 
 import { DisplayData } from '@/components/DisplayData/DisplayData.tsx';
 import { Page } from '@/components/Page.tsx';
@@ -28,7 +29,6 @@ export const TONConnectPage: FC = () => {
       <Page>
         <Placeholder
           className={e('placeholder')}
-          header="TON Connect"
           description={
             <>
               <Text>
@@ -38,19 +38,20 @@ export const TONConnectPage: FC = () => {
               <TonConnectButton className={e('button')}/>
             </>
           }
+          header="TON Connect"
         />
       </Page>
     );
   }
 
   const {
-    account: { chain, publicKey, address },
+    account: { address, chain, publicKey },
     device: {
       appName,
       appVersion,
+      features,
       maxProtocolVersion,
       platform,
-      features,
     },
   } = wallet;
 
@@ -61,15 +62,15 @@ export const TONConnectPage: FC = () => {
           <>
             <Section>
               <Cell
-                before={
-                  <Avatar src={wallet.imageUrl} alt="Provider logo" width={60} height={60}/>
-                }
                 after={<Navigation>About wallet</Navigation>}
-                subtitle={wallet.appName}
+                before={
+                  <Avatar alt="Provider logo" height={60} src={wallet.imageUrl} width={60}/>
+                }
                 onClick={(e) => {
                   e.preventDefault();
                   openLink(wallet.aboutUrl);
                 }}
+                subtitle={wallet.appName}
               >
                 <Title level="3">{wallet.name}</Title>
               </Cell>

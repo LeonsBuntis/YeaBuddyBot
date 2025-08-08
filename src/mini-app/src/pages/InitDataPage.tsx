@@ -1,4 +1,3 @@
-import { type FC, useMemo } from 'react';
 import {
   initDataRaw as _initDataRaw,
   initDataState as _initDataState,
@@ -6,6 +5,7 @@ import {
   useSignal,
 } from '@telegram-apps/sdk-react';
 import { List, Placeholder } from '@telegram-apps/telegram-ui';
+import { type FC, useMemo } from 'react';
 
 import { DisplayData, type DisplayDataRow } from '@/components/DisplayData/DisplayData.tsx';
 import { Page } from '@/components/Page.tsx';
@@ -36,13 +36,13 @@ export const InitDataPage: FC = () => {
   }, [initDataState, initDataRaw]);
 
   const userRows = useMemo<DisplayDataRow[] | undefined>(() => {
-    return initDataState && initDataState.user
+    return initDataState?.user
       ? getUserRows(initDataState.user)
       : undefined;
   }, [initDataState]);
 
   const receiverRows = useMemo<DisplayDataRow[] | undefined>(() => {
-    return initDataState && initDataState.receiver
+    return initDataState?.receiver
       ? getUserRows(initDataState.receiver)
       : undefined;
   }, [initDataState]);
@@ -57,13 +57,13 @@ export const InitDataPage: FC = () => {
     return (
       <Page>
         <Placeholder
-          header="Oops"
           description="Application was launched with missing init data"
+          header="Oops"
         >
           <img
             alt="Telegram sticker"
             src="https://xelene.me/telegram.gif"
-            style={{ display: 'block', width: '144px', height: '144px' }}
+            style={{ display: 'block', height: '144px', width: '144px' }}
           />
         </Placeholder>
       </Page>

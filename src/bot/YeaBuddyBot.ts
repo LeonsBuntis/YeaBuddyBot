@@ -2,21 +2,42 @@ import { Context, Markup, Telegraf } from "telegraf";
 import { Scenes, session } from "telegraf";
 import { message } from "telegraf/filters";
 
+import { appVersion, webappUrl } from "../config.js";
+import { Exercise, Repository, Set, Workout } from "../infrastructure/Repository.js";
 import { createWorkoutScenes } from "./scenes/WorkoutScenes.js";
 import { TrainingManager } from "./training/TrainingSession.js";
-import { appVersion, webappUrl } from "../config.js";
 
 interface BotContext extends Context {
     scene: Scenes.SceneContextScene<Scenes.SceneContext>;
     session: Scenes.SceneSession;
 }
 
+interface WorkoutExercise {
+    name: string;
+    sets: WorkoutSet[];
+}
+
+interface WorkoutSessionData {
+    completed?: boolean;
+    endTime?: string;
+    exercises: WorkoutExercise[];
+    startTime: string;
+    userId: number;
+}
+
+interface WorkoutSet {
+    reps: number;
+    weight: number;
+}
+
 export class YeaBuddyBot {
     private bot: Telegraf<BotContext>;
+    private repository: Repository;
     private trainingManager: TrainingManager;
 
     constructor(token: string) {
         this.bot = new Telegraf<BotContext>(token);
+        this.repository = new Repository();
         this.trainingManager = new TrainingManager();
 
         // Set up session and scene middleware
@@ -28,89 +49,56 @@ export class YeaBuddyBot {
         void this.setupCommands();
     }
 
-    private async setupCommands(): Promise<void> {
-        await this.bot.telegram.setMyCommands([
-            { command: "pumpit", description: "Start a new training session 🏋️‍♂️" },
-            { command: "app", description: "Open YeaBuddy Mini App 🚀" },
-            { command: "version", description: "Show current app version" },
-        ]);
+    public async run(): Promise<void> {
+        try {
+            console.log("Starting the bot...");
+
+            // Launch the bot
+            await this.bot.launch();
+
+            // Enable graceful stop
+            process.once("SIGINT", () => {
+                this.bot.stop("SIGINT");
+            });
+            process.once("SIGTERM", () => {
+                this.bot.stop("SIGTERM");
+            });
+
+            console.log("Bot is running!");
+        } catch (error) {
+            console.error("Error starting the bot:", error);
+            throw error;
+        }
     }
 
-    private setupHandlers(): void {
-        // Command handler for /start
-        this.bot.command("start", async (ctx) => {
-            await ctx.reply("Yeah buddy! 💪 Light weight baby! What can I do for you?");
+    public async runWeb(webhookUrl: string) {
+        process.once("SIGINT", () => {
+            this.bot.stop("SIGINT");
+        });
+        process.once("SIGTERM", () => {
+            this.bot.stop("SIGTERM");
         });
 
-        // Command handler for /version
-        this.bot.command("version", async (ctx) => {
-            await ctx.reply(`Current app version is ${appVersion}`);
-        });
+        return await this.bot.createWebhook({ domain: webhookUrl });
+    }
 
-        // Command handler for /app - open the Telegram miniapp
-        this.bot.command("app", async (ctx) => {
-            const keyboard = Markup.inlineKeyboard([[Markup.button.webApp("Open YeaBuddy Mini App 🚀", webappUrl)]]);
+    private handleError(err: unknown, ctx: Context): void {
+        console.error(`Error for ${ctx.updateType}:`, err);
+    }
 
-            await ctx.reply(
-                "🚀 Ready to pump it with our Mini App?\n\n" + "Track your workouts with a richer experience!\n" + "YEAH BUDDY! 💪",
-                keyboard,
-            );
-        });
+    private async handleFinishCommand(ctx: Context, userId: number): Promise<void> {
+        const session = this.trainingManager.finishSession(userId);
+        if (!session) {
+            await ctx.reply("No active training session! Start one with /pumpit first! 💪");
+            return;
+        }
 
-        // Command handler for /pumpit - start a training session
-        this.bot.command("pumpit", async (ctx) => {
-            const userId = ctx.from?.id;
-            if (!userId) return;
+        const keyboard = Markup.keyboard([[Markup.button.text("YEAH BUDDY! 🏋️‍♂️")]])
+            .oneTime()
+            .resize();
 
-            if (this.trainingManager.hasActiveSession(userId)) {
-                await ctx.reply("You already have an active training session! FOCUS! 💪\nUse /finish to end your current session.");
-                return;
-            }
-
-            this.trainingManager.startSession(userId);
-            const keyboard = Markup.inlineKeyboard([
-                [Markup.button.callback("Add Exercise 🎯", "addExercise")],
-                [Markup.button.callback("Finish Workout 🏁", "finish")],
-            ]);
-
-            await ctx.reply(
-                "LIGHT WEIGHT BABY! 🏋️‍♂️ Training session started!\n\n" +
-                    "Use the buttons below to control your workout!\n\n" +
-                    "Let's make these weights fly! YEAH BUDDY! 💪",
-                keyboard,
-            );
-        });
-
-        // Handle inline button actions
-        this.bot.action("addExercise", async (ctx) => {
-            const userId = ctx.from?.id;
-            if (!userId) return;
-
-            await ctx.answerCbQuery();
-            await ctx.scene.enter("addExercise");
-        });
-
-        this.bot.action("finish", async (ctx) => {
-            const userId = ctx.from?.id;
-            if (!userId) return;
-
-            await ctx.answerCbQuery();
-            await this.handleFinishCommand(ctx, userId);
-        });
-
-        this.bot.action("addSet", async (ctx) => {
-            const userId = ctx.from?.id;
-            if (!userId) return;
-
-            await ctx.answerCbQuery();
-            await ctx.scene.enter("addSet");
-        });
-
-        // Handle text messages
-        this.bot.on(message("text"), this.handleTextMessage.bind(this));
-
-        // Error handling
-        this.bot.catch(this.handleError.bind(this));
+        const summary = this.trainingManager.formatSessionSummary(session);
+        await ctx.reply(summary, keyboard);
     }
 
     private async handleTextMessage(ctx: Context): Promise<void> {
@@ -141,47 +129,157 @@ export class YeaBuddyBot {
         await ctx.reply("Mistral is offline. I am dumb now, I can only record workouts...");
     }
 
-    private async handleFinishCommand(ctx: Context, userId: number): Promise<void> {
-        const session = this.trainingManager.finishSession(userId);
-        if (!session) {
-            await ctx.reply("No active training session! Start one with /pumpit first! 💪");
+    private async handleWebAppData(ctx: Context): Promise<void> {
+        if (!ctx.webAppData || !ctx.webAppData.data) {
             return;
         }
 
-        const keyboard = Markup.keyboard([[Markup.button.text("YEAH BUDDY! 🏋️‍♂️")]])
-            .oneTime()
-            .resize();
+        const userId = ctx.from?.id;
+        if (!userId) {
+            return;
+        }
 
-        const summary = this.trainingManager.formatSessionSummary(session);
-        await ctx.reply(summary, keyboard);
-    }
-
-    private handleError(err: unknown, ctx: Context): void {
-        console.error(`Error for ${ctx.updateType}:`, err);
-    }
-
-    public async run(): Promise<void> {
         try {
-            console.log("Starting the bot...");
+            const workoutData: WorkoutSessionData = ctx.webAppData.data.json<WorkoutSessionData>();
 
-            // Launch the bot
-            await this.bot.launch();
+            console.log(`Received workout data from user ${String(userId)}:`, workoutData);
 
-            // Enable graceful stop
-            process.once("SIGINT", () => this.bot.stop("SIGINT"));
-            process.once("SIGTERM", () => this.bot.stop("SIGTERM"));
+            // Convert the mini-app workout format to Repository format
+            const workout = new Workout(
+                userId,
+                new Date(workoutData.startTime),
+                workoutData.exercises.map(
+                    (exercise: WorkoutExercise) =>
+                        new Exercise(
+                            userId.toString(),
+                            exercise.name,
+                            exercise.sets.map((set: WorkoutSet) => new Set(set.weight, set.reps)),
+                        ),
+                ),
+            );
 
-            console.log("Bot is running!");
+            // Set the end time if provided
+            if (workoutData.endTime) {
+                workout.endTime = new Date(workoutData.endTime);
+            }
+
+            // Save workout to Cosmos DB
+            await this.repository.saveWorkout(workout);
+
+            // Finish the active training session if it exists
+            this.trainingManager.finishSession(userId);
+
+            // Send confirmation message
+            await ctx.reply(
+                "YEAH BUDDY! 🏋️‍♂️ Workout saved successfully!\n\n" +
+                    `💪 ${String(workout.excercises.length)} exercises completed\n` +
+                    `🔥 ${String(workout.excercises.reduce((total, ex) => total + ex.sets.length, 0))} total sets\n\n` +
+                    "Keep pushing those limits! LIGHT WEIGHT BABY! 💪",
+            );
         } catch (error) {
-            console.error("Error starting the bot:", error);
-            throw error;
+            console.error("Error handling web app data:", error);
+            await ctx.reply("Failed to save workout data. Please try again! 💪");
         }
     }
 
-    public async runWeb(webhookUrl: string) {
-        process.once("SIGINT", () => this.bot.stop("SIGINT"));
-        process.once("SIGTERM", () => this.bot.stop("SIGTERM"));
+    private async setupCommands(): Promise<void> {
+        await this.bot.telegram.setMyCommands([
+            { command: "startworkout", description: "Start workout with mini-app 🏋️‍♂️" },
+            { command: "pumpit", description: "Start a new training session 🏋️‍♂️" },
+            { command: "app", description: "Open YeaBuddy Mini App 🚀" },
+            { command: "version", description: "Show current app version" },
+        ]);
+    }
 
-        return await this.bot.createWebhook({ domain: webhookUrl });
+    private setupHandlers(): void {
+        // Command handler for /start
+        this.bot.command("start", async (ctx) => {
+            await ctx.reply("Yeah buddy! 💪 Light weight baby! What can I do for you?");
+        });
+
+        // Command handler for /version
+        this.bot.command("version", async (ctx) => {
+            await ctx.reply(`Current app version is ${appVersion}`);
+        });
+
+        // Command handler for /app - open the Telegram miniapp
+        this.bot.command("app", async (ctx) => {
+            const keyboard = Markup.inlineKeyboard([[Markup.button.webApp("Open YeaBuddy Mini App 🚀", webappUrl)]]);
+
+            await ctx.reply(
+                "🚀 Ready to pump it with our Mini App?\n\n" + "Track your workouts with a richer experience!\n" + "YEAH BUDDY! 💪",
+                keyboard,
+            );
+        });
+
+        // Command handler for /startworkout - start workout and open mini-app
+        this.bot.command("startworkout", async (ctx) => {
+            const userId = ctx.from.id;
+
+            if (this.trainingManager.hasActiveSession(userId)) {
+                await ctx.reply("You already have an active training session! FOCUS! 💪\nFinish your current session first.");
+                return;
+            }
+
+            this.trainingManager.startSession(userId);
+            const keyboard = Markup.keyboard([[Markup.button.webApp("🏋️‍♂️ Open Workout Logger", `${webappUrl}#/workout`)]]);
+
+            await ctx.reply(
+                "YEAH BUDDY! 🏋️‍♂️ New workout session started!\n\n" +
+                    "Ready to pump some iron? Open the Workout Logger to track your sets!\n\n" +
+                    "LIGHT WEIGHT BABY! 💪",
+                keyboard,
+            );
+        });
+
+        // Command handler for /pumpit - start a training session
+        this.bot.command("pumpit", async (ctx) => {
+            const userId = ctx.from.id;
+
+            if (this.trainingManager.hasActiveSession(userId)) {
+                await ctx.reply("You already have an active training session! FOCUS! 💪\nUse /finish to end your current session.");
+                return;
+            }
+
+            this.trainingManager.startSession(userId);
+            const keyboard = Markup.inlineKeyboard([
+                [Markup.button.callback("Add Exercise 🎯", "addExercise")],
+                [Markup.button.callback("Finish Workout 🏁", "finish")],
+            ]);
+
+            await ctx.reply(
+                "LIGHT WEIGHT BABY! 🏋️‍♂️ Training session started!\n\n" +
+                    "Use the buttons below to control your workout!\n\n" +
+                    "Let's make these weights fly! YEAH BUDDY! 💪",
+                keyboard,
+            );
+        });
+
+        // Handle inline button actions
+        this.bot.action("addExercise", async (ctx) => {
+            await ctx.answerCbQuery();
+            await ctx.scene.enter("addExercise");
+        });
+
+        this.bot.action("finish", async (ctx) => {
+            await ctx.answerCbQuery();
+            await this.handleFinishCommand(ctx, ctx.from.id);
+        });
+
+        this.bot.action("addSet", async (ctx) => {
+            await ctx.answerCbQuery();
+            await ctx.scene.enter("addSet");
+        });
+
+        // Handle web app data (from mini-app sendData)
+        // this.bot.on("web_app_data", this.handleWebAppData.bind(this));
+
+        this.bot.on(message("web_app_data"), this.handleWebAppData.bind(this));
+
+        // Handle text messages
+        this.bot.on(message("text"), this.handleTextMessage.bind(this));
+
+        // Error handling
+        this.bot.catch(this.handleError.bind(this));
     }
 }

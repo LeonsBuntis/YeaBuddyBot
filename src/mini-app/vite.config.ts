@@ -1,11 +1,14 @@
-import { defineConfig } from "vite";
-import tsconfigPaths from "vite-tsconfig-paths";
 import react from "@vitejs/plugin-react-swc";
+import { defineConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
+import tsconfigPaths from "vite-tsconfig-paths";
 
 // https://vitejs.dev/config/
 export default defineConfig({
     base: "/mini-app/",
+    build: {
+        target: "esnext",
+    },
     css: {
         preprocessorOptions: {
             scss: {
@@ -25,9 +28,6 @@ export default defineConfig({
         // https://www.npmjs.com/package/vite-plugin-mkcert
         process.env.HTTPS && mkcert(),
     ],
-    build: {
-        target: "esnext",
-    },
     publicDir: "./public",
     server: {
         // Exposes your dev server and makes it accessible for the devices in the same network.

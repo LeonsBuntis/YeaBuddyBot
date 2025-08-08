@@ -1,6 +1,20 @@
-export function isRecord(v: unknown): v is Record<string, unknown> {
-  return !!v && typeof v === 'object' && !Array.isArray(v);
-}
+export type MergeClassNames<Tuple extends any[]> =
+// Removes all types from union that will be ignored by the mergeClassNames function.
+  Exclude<Tuple[number], any[] | boolean | null | number | string | undefined> extends infer Union
+    ?
+    & Partial<Record<UnionOptionalKeys<Union>, string>>
+    & Record<UnionRequiredKeys<Union>, string>
+    : never;
+
+type UnionOptionalKeys<U> = Exclude<UnionStringKeys<U>, UnionRequiredKeys<U>>;
+
+type UnionRequiredKeys<U> = U extends U
+  ? { [K in UnionStringKeys<U>]: (object extends Pick<U, K> ? never : K) }[UnionStringKeys<U>]
+  : never;
+
+type UnionStringKeys<U> = U extends U
+  ? { [K in keyof U]-?: U[K] extends string | undefined ? K : never }[keyof U]
+  : never;
 
 /**
  * Function which joins passed values with space following these rules:
@@ -32,23 +46,9 @@ export function classNames(...values: any[]): string {
     .join(' ');
 }
 
-type UnionStringKeys<U> = U extends U
-  ? { [K in keyof U]-?: U[K] extends string | undefined ? K : never }[keyof U]
-  : never;
-
-type UnionRequiredKeys<U> = U extends U
-  ? { [K in UnionStringKeys<U>]: (object extends Pick<U, K> ? never : K) }[UnionStringKeys<U>]
-  : never;
-
-type UnionOptionalKeys<U> = Exclude<UnionStringKeys<U>, UnionRequiredKeys<U>>;
-
-export type MergeClassNames<Tuple extends any[]> =
-// Removes all types from union that will be ignored by the mergeClassNames function.
-  Exclude<Tuple[number], number | string | null | undefined | any[] | boolean> extends infer Union
-    ?
-    & { [K in UnionRequiredKeys<Union>]: string; }
-    & { [K in UnionOptionalKeys<Union>]?: string; }
-    : never;
+export function isRecord(v: unknown): v is Record<string, unknown> {
+  return !!v && typeof v === 'object' && !Array.isArray(v);
+}
 
 /**
  * Merges two sets of classnames.

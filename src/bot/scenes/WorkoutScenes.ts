@@ -1,4 +1,5 @@
-import { Scenes, Markup } from "telegraf";
+import { Markup, Scenes } from "telegraf";
+
 import { TrainingManager } from "../training/TrainingSession.js";
 
 export function createWorkoutScenes(trainingManager: TrainingManager) {
